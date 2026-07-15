@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createLLM, LLM_PROVIDERS } from "../llm/index.js";
 import { parseAgentResponse } from "../llm/parser.js";
 import { classifyLLMError } from "../llm/errors.js";
-import { applyAgentPlan } from "../utils/bookmarkFilters.js";
+import { applyAgentPlan, mergeAgentPlan, sortStepsByPriority } from "../utils/bookmarkFilters.js";
 import { filterDuplicateImports, findDuplicateIds } from "../utils/duplicates.js";
 import { useBookmarkStore } from "../hooks/useBookmarkStore.js";
 import { useTheme } from "../hooks/useTheme.js";
@@ -345,7 +345,8 @@ const BookmarkApp = () => {
       if (e.key === "Escape") { setSelectedBookmarkId(null); setMultiSelectedBookmarkIds([]); setBookmarksToDelete([]); return; }
       const comboA = (isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "a";
       const comboD = (isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "d";
-      if (comboA) { e.preventDefault(); setMultiSelectedBookmarkIds(bookmarks.map((b) => b.id)); }
+      // #22: select the currently visible (filtered) bookmarks, not the whole store
+      if (comboA) { e.preventDefault(); setMultiSelectedBookmarkIds(displayedBookmarks.map((b) => b.id)); }
       if (comboD) {
         e.preventDefault();
         const ids = selectedBookmarkId ? [selectedBookmarkId] : multiSelectedBookmarkIds.length ? [...multiSelectedBookmarkIds] : [];
@@ -364,7 +365,7 @@ const BookmarkApp = () => {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [bookmarks, selectedBookmarkId, multiSelectedBookmarkIds, isModalOpen, isImportExportModalOpen, isDeleteConfirmModalOpen, isHelpModalOpen]);
+  }, [bookmarks, displayedBookmarks, selectedBookmarkId, multiSelectedBookmarkIds, isModalOpen, isImportExportModalOpen, isDeleteConfirmModalOpen, isHelpModalOpen]);
 
   // ─── Persisted reorder (UX-05: with undo) ───────────────────────────────────
   const persistReorder = useCallback(async (order = "asc", sortByOverride) => {
@@ -447,11 +448,11 @@ const BookmarkApp = () => {
       if (!responseText) throw new Error("No valid response from LLM.");
       const steps = parseAgentResponse(responseText, provider);
       if (steps.length === 0) throw new Error("Unable to interpret agent response.");
-      const previous = Array.isArray(lastAction) ? lastAction : lastAction ? [lastAction] : [];
-      const containsReset = steps.some((s) => ["resetSearch","showAllBookmarks"].includes(s.action));
-      const combined = containsReset ? steps : [...previous, ...steps];
+      // #20: merge into the accumulated plan with per-action dedup (bounded growth)
+      const combined = mergeAgentPlan(lastAction, steps);
       setLastAction(combined.length === 1 ? combined[0] : combined);
-      for (const step of steps) {
+      // #21: run side-effecting steps in the LLM-assigned priority order
+      for (const step of sortStepsByPriority(steps)) {
         if (step.action === "help") setIsHelpModalOpen(true);
         if (step.action === "importBookmarks" || step.action === "exportBookmarks") setIsImportExportModalOpen(true);
         if (step.action === "removeDuplicates") {
