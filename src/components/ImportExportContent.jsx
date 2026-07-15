@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { escapeHtml } from "../utils/url.js";
 
 // UX-03: Memoize JSON/HTML export strings and data URIs to prevent recomputing on every render.
 // UX-04: Add confirmation step before import with append vs replace option.
@@ -37,9 +38,11 @@ const ImportExportContent = ({
       const lastModified = b.updatedAt
         ? Math.floor(new Date(b.updatedAt).getTime() / 1000)
         : "";
-      const icon = b.faviconUrl ? ` ICON="${b.faviconUrl}"` : "";
-      const description = b.description ? ` DESCRIPTION="${b.description}"` : "";
-      html += `    <DT><A HREF="${b.url}" ADD_DATE="${addDate}" LAST_MODIFIED="${lastModified}"${icon}${description}>${b.title}</A>\n`;
+      // #12: escape all interpolated fields so a bookmark containing " < > & cannot
+      // corrupt the export file or inject markup into the generated HTML.
+      const icon = b.faviconUrl ? ` ICON="${escapeHtml(b.faviconUrl)}"` : "";
+      const description = b.description ? ` DESCRIPTION="${escapeHtml(b.description)}"` : "";
+      html += `    <DT><A HREF="${escapeHtml(b.url)}" ADD_DATE="${addDate}" LAST_MODIFIED="${lastModified}"${icon}${description}>${escapeHtml(b.title)}</A>\n`;
     });
     html += "</DL><p>\n";
     return html;
