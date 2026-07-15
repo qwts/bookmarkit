@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, writeBatch, query, getDocs, orderBy } from 'firebase/firestore';
+import { chunk, MAX_FIRESTORE_BATCH_OPS } from './batching.js';
 
 export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken }) {
   let listeners = new Set();
@@ -14,6 +15,18 @@ export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken })
   const notify = (all) => listeners.forEach((cb) => cb(all));
 
   const collectionRef = () => collection(db, 'artifacts', appId, 'users', userId, 'bookmarks');
+
+  // #15: Commit a list of write operations in batches of <=500 (the Firestore
+  // limit). Each op is a function that applies one write to the passed batch.
+  // NOTE: chunking sacrifices cross-chunk atomicity for operations that exceed
+  // the limit; a non-destructive/rollback strategy is tracked separately (#18).
+  const commitInChunks = async (ops) => {
+    for (const group of chunk(ops, MAX_FIRESTORE_BATCH_OPS)) {
+      const batch = writeBatch(db);
+      group.forEach((applyOp) => applyOp(batch));
+      await batch.commit();
+    }
+  };
 
   const api = {
     async init() {
@@ -88,41 +101,32 @@ export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken })
     },
     async removeMany(ids = []) {
       if (!ids || ids.length === 0) return;
-      const batch = writeBatch(db);
-      ids.forEach((id) => {
-        const ref = doc(collectionRef(), id);
-        batch.delete(ref);
-      });
-      await batch.commit();
+      const ops = ids.map((id) => (batch) => batch.delete(doc(collectionRef(), id)));
+      await commitInChunks(ops);
     },
     async bulkReplace(bookmarks) {
-      const batch = writeBatch(db);
       const snap = await getDocs(query(collectionRef()));
-      snap.forEach(d => batch.delete(d.ref));
+      const ops = [];
+      snap.forEach((d) => ops.push((batch) => batch.delete(d.ref)));
       bookmarks.forEach((b, index) => {
         const dref = doc(collectionRef());
-        batch.set(dref, { ...b, id: dref.id, position: typeof b.position === 'number' ? b.position : index, createdAt: b.createdAt || new Date().toISOString(), updatedAt: b.updatedAt || new Date().toISOString() });
+        const data = { ...b, id: dref.id, position: typeof b.position === 'number' ? b.position : index, createdAt: b.createdAt || new Date().toISOString(), updatedAt: b.updatedAt || new Date().toISOString() };
+        ops.push((batch) => batch.set(dref, data));
       });
-      await batch.commit();
+      await commitInChunks(ops);
     },
     async bulkAdd(bookmarks) {
-      const batch = writeBatch(db);
-      // Determine starting position by getting max position, or just append. 
-      // Simplest for now is just append without enforcing strict position continuity, 
-      // as reorder handles full list. But let's try to be nice if possible.
-      // Actually, bulkReplace resets positions. bulkAdd might just append.
-      // Let's just add them.
+      // The list query sorts by position then title; new docs get default
+      // position and append. Reorder handles explicit ordering afterward.
       const added = [];
+      const ops = [];
       bookmarks.forEach((b) => {
         const dref = doc(collectionRef());
         const data = { ...b, id: dref.id, createdAt: b.createdAt || new Date().toISOString(), updatedAt: b.updatedAt || new Date().toISOString() };
-        // If position is needed we could fetch current count, but batch is atomic. 
-        // We'll leave position undefined or 0, effectively appending in default sort if we sort by position.
-        // The list query sorts by position then title.
-        batch.set(dref, data);
+        ops.push((batch) => batch.set(dref, data));
         added.push(data);
       });
-      await batch.commit();
+      await commitInChunks(ops);
       return added;
     },
     /**
@@ -136,12 +140,10 @@ export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken })
         ...orderedIds.filter((id) => existingIds.includes(id)),
         ...existingIds.filter((id) => !orderedSet.has(id)),
       ];
-      const batch = writeBatch(db);
-      normalized.forEach((id, idx) => {
-        const ref = doc(collectionRef(), id);
-        batch.set(ref, { position: idx, updatedAt: new Date().toISOString() }, { merge: true });
-      });
-      await batch.commit();
+      const ops = normalized.map((id, idx) => (batch) =>
+        batch.set(doc(collectionRef(), id), { position: idx, updatedAt: new Date().toISOString() }, { merge: true })
+      );
+      await commitInChunks(ops);
     },
     /**
      * Compute a sorted order by field and persist via positions.

@@ -1,10 +1,34 @@
 // Local composite store: Chrome Bookmarks for storage + localStorage for metadata
 // Persists bookmark nodes in Chrome bookmarks; stores additional metadata (description, tags, rating, faviconUrl, urlStatus, timestamps)
-// in sessionStorage keyed by bookmark id. This allows non-destructive metadata alongside native Chrome bookmarks.
+// in localStorage keyed by bookmark id. This allows non-destructive metadata alongside native Chrome bookmarks.
 
 import { createChromeBookmarksStore } from './chromeBookmarksStore.js';
 
 const META_KEY_PREFIX = 'bm_meta:'; // localStorage key prefix
+
+/**
+ * #16: Given all localStorage keys and the set of bookmark ids that still
+ * exist, return the `bm_meta:` keys whose bookmark is gone (orphans to prune).
+ * Pure and exported for testing.
+ * @param {string[]} storageKeys
+ * @param {Set<string>} validIds
+ * @returns {string[]}
+ */
+export function orphanMetaKeys(storageKeys, validIds) {
+  return (storageKeys || []).filter(
+    (key) => key?.startsWith(META_KEY_PREFIX) && !validIds.has(key.slice(META_KEY_PREFIX.length))
+  );
+}
+
+// Remove metadata for bookmarks that no longer exist, keeping localStorage from
+// growing unbounded across bulkReplace calls (which mint entirely new ids).
+function pruneOrphanMeta(validIds) {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+  for (const key of orphanMetaKeys(keys, validIds)) {
+    try { localStorage.removeItem(key); } catch { /* ignore */ }
+  }
+}
 
 function readMeta(id) {
   try {
@@ -183,18 +207,18 @@ export function createLocalCompositeStore(options = {}) {
       await notify();
     },
     async bulkReplace(bookmarks) {
-      // Replace chrome list with provided entries (title/url only), then write metadata for each
-      await chromeStore.bulkReplace(bookmarks);
-      // After replace, chrome will have new IDs; we need to map titles/urls back to ids.
-      // Strategy: read current list and build a lookup by title+url (case-insensitive)
-      const current = await chromeStore.list();
-      const index = new Map(current.map(n => [`${(n.title || '').toLowerCase()}|${(n.url || '').toLowerCase()}`, n]));
-      // Clear all old meta that no longer match current IDs for safety? We'll keep as-is to avoid data loss.
-      for (const b of bookmarks) {
-        const key = `${(b.title || '').toLowerCase()}|${(b.url || '').toLowerCase()}`;
-        const node = index.get(key);
+      // Replace chrome list with provided entries (title/url only), then write metadata for each.
+      // #16: chromeStore.bulkReplace returns the created nodes in input order, so we match by
+      // index — this avoids the old title+url lookup that collapsed same-title/url entries and
+      // dropped one set of metadata.
+      const createdNodes = await chromeStore.bulkReplace(bookmarks);
+      const now = new Date().toISOString();
+      const validIds = new Set();
+      for (let i = 0; i < bookmarks.length; i++) {
+        const b = bookmarks[i];
+        const node = createdNodes?.[i];
         if (!node) continue;
-        const now = new Date().toISOString();
+        validIds.add(node.id);
         writeMeta(node.id, {
           description: b.description || '',
           tags: b.tags || [],
@@ -206,6 +230,8 @@ export function createLocalCompositeStore(options = {}) {
           updatedAt: b.updatedAt || now,
         });
       }
+      // #16: delete metadata orphaned by the replace (all prior ids are now gone).
+      pruneOrphanMeta(validIds);
       await notify();
     },
     async bulkAdd(bookmarks) {
