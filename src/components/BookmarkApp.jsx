@@ -40,7 +40,7 @@ const BookmarkApp = () => {
   // ─── Store ──────────────────────────────────────────────────────────────────
   const {
     bookmarks, isLoading, importProgress,
-    storeRef, init, saveBookmark, deleteBookmark, deleteBookmarks,
+    storeRef, init, saveBookmark, deleteBookmarks,
     saveAllBookmarks, appendBookmarks, persistSortedOrder,
   } = useBookmarkStore();
 
@@ -182,7 +182,7 @@ const BookmarkApp = () => {
   }, [bookmarks, lastAction]);
 
   // ─── Message helper ──────────────────────────────────────────────────────────
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   function showCustomMessage(message, type = "info") {
     setMessageModalContent({ message, type });
     setIsMessageModalOpen(true);
@@ -430,7 +430,7 @@ const BookmarkApp = () => {
 
     Available Actions: searchBookmarks({searchTerm}), showAllBookmarks, resetSearch, importBookmarks, exportBookmarks, removeDuplicates, help, findIncludes({field,value}), findStartsWith({field,value}), findWithTags({includeTags,excludeTags?}), filterByRating({minRating?,maxRating?,comparator?,exact?}), sortBookmarks({sortBy,order}), limitResults({count,direction?,scope?}), limitFirst({count}), limitLast({count}), reorder({sortBy,order}), reorderAscending({sortBy?}), reorderDescending({sortBy?}), persistSortedOrder({sortBy?,order})
 
-    Output schema: [{\"action\": string, \"parameters\": object, \"priority\": number}]
+    Output schema: [{"action": string, "parameters": object, "priority": number}]
     Respond with ONLY a JSON object or array wrapped in a markdown code block.`;
 
     const provider = runtimeProvider || (typeof __llm_provider__ !== "undefined" && __llm_provider__) || LLM_PROVIDERS.GEMINI;

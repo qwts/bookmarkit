@@ -27,7 +27,7 @@ export function useBookmarkStore() {
      * @param {(msg: string, type?: string) => void} showMessage
      * @returns {() => void} cleanup
      */
-    (showMessage) => {
+    (_showMessage) => {
       let cancelled = false;
       let unsub;
       (async () => {
