@@ -6,6 +6,7 @@ import { classifyLLMError } from "../llm/errors.js";
 import { applyAgentPlan, mergeAgentPlan, sortStepsByPriority } from "../utils/bookmarkFilters.js";
 import { filterDuplicateImports, findDuplicateIds } from "../utils/duplicates.js";
 import { isSafeHttpUrl } from "../utils/url.js";
+import { encryptString, decryptString, isEncryptedBlob } from "../utils/keyCrypto.js";
 import { useBookmarkStore } from "../hooks/useBookmarkStore.js";
 import { useTheme } from "../hooks/useTheme.js";
 import { useDebounce } from "../hooks/useDebounce.js";
@@ -55,6 +56,10 @@ const BookmarkApp = () => {
     return (globalDefault || LLM_PROVIDERS.GEMINI).toString().toLowerCase();
   });
   const [runtimeProviderOptions, setRuntimeProviderOptions] = useState({});
+  // #29: optional passphrase encryption-at-rest for the stored LLM options.
+  const [optionsEncrypted, setOptionsEncrypted] = useState(false);
+  const [optionsLocked, setOptionsLocked] = useState(false); // encrypted but not yet unlocked this session
+  const passphraseRef = useRef(""); // held in memory only after unlock/enable
 
   useEffect(() => {
     (async () => {
@@ -76,24 +81,36 @@ const BookmarkApp = () => {
               }
             } catch { /* sync unavailable — nothing to migrate */ }
           }
-          const result = await storage.get(["bm_runtime_llm_provider", "bm_runtime_llm_options"]);
+          const result = await storage.get(["bm_runtime_llm_provider", "bm_runtime_llm_options", "bm_runtime_llm_options_enc"]);
           let provider = result.bm_runtime_llm_provider;
           let optionsStr = result.bm_runtime_llm_options;
           if (!provider) {
             const old = localStorage.getItem("bm_runtime_llm_provider");
             if (old) { provider = old; storage.set({ bm_runtime_llm_provider: old }); localStorage.removeItem("bm_runtime_llm_provider"); }
           }
-          if (!optionsStr) {
+          if (!optionsStr && !result.bm_runtime_llm_options_enc) {
             const old = localStorage.getItem("bm_runtime_llm_options");
             if (old) { optionsStr = old; storage.set({ bm_runtime_llm_options: old }); localStorage.removeItem("bm_runtime_llm_options"); }
           }
           if (provider) setRuntimeProvider(provider.toString().toLowerCase());
-          if (optionsStr) { try { setRuntimeProviderOptions(JSON.parse(optionsStr)); } catch {} }
+          // #29: if an encrypted blob exists, stay locked until the user unlocks with a passphrase.
+          if (isEncryptedBlob(result.bm_runtime_llm_options_enc)) {
+            setOptionsEncrypted(true);
+            setOptionsLocked(true);
+          } else if (optionsStr) {
+            try { setRuntimeProviderOptions(JSON.parse(optionsStr)); } catch { /* ignore */ }
+          }
         } else {
           const saved = localStorage.getItem("bm_runtime_llm_provider");
           const raw = localStorage.getItem("bm_runtime_llm_options");
+          const enc = localStorage.getItem("bm_runtime_llm_options_enc");
           if (saved) setRuntimeProvider(saved.toString().toLowerCase());
-          if (raw) { try { setRuntimeProviderOptions(JSON.parse(raw)); } catch {} }
+          if (isEncryptedBlob(enc)) {
+            setOptionsEncrypted(true);
+            setOptionsLocked(true);
+          } else if (raw) {
+            try { setRuntimeProviderOptions(JSON.parse(raw)); } catch { /* ignore */ }
+          }
         }
       } catch (e) { console.error("Failed to load LLM settings:", e); }
     })();
@@ -107,6 +124,73 @@ const BookmarkApp = () => {
       } else { localStorage.setItem(key, value); }
     } catch {}
   }, []);
+
+  const removeLLMSetting = useCallback(async (key) => {
+    try {
+      if (typeof chrome !== "undefined" && chrome.storage?.local) await chrome.storage.local.remove(key);
+      else localStorage.removeItem(key);
+    } catch {}
+  }, []);
+
+  const getLLMSetting = useCallback(async (key) => {
+    try {
+      if (typeof chrome !== "undefined" && chrome.storage?.local) {
+        const r = await chrome.storage.local.get([key]);
+        return r[key];
+      }
+      return localStorage.getItem(key);
+    } catch { return undefined; }
+  }, []);
+
+  // #29: persist the full provider-options object, encrypting it at rest when a
+  // passphrase is active. When encrypted, the plaintext key is removed from storage.
+  const persistProviderOptions = useCallback(async (nextOptions) => {
+    try {
+      if (optionsEncrypted && passphraseRef.current) {
+        const blob = await encryptString(JSON.stringify(nextOptions), passphraseRef.current);
+        await saveLLMSetting("bm_runtime_llm_options_enc", blob);
+        await removeLLMSetting("bm_runtime_llm_options");
+      } else {
+        await saveLLMSetting("bm_runtime_llm_options", JSON.stringify(nextOptions));
+      }
+    } catch (e) { console.error("Failed to persist LLM options:", e); }
+  }, [optionsEncrypted, saveLLMSetting, removeLLMSetting]);
+
+  const handleEnableEncryption = useCallback(async (passphrase) => {
+    if (!passphrase) return;
+    passphraseRef.current = passphrase;
+    const blob = await encryptString(JSON.stringify(runtimeProviderOptions), passphrase);
+    await saveLLMSetting("bm_runtime_llm_options_enc", blob);
+    await removeLLMSetting("bm_runtime_llm_options");
+    setOptionsEncrypted(true);
+    setOptionsLocked(false);
+    showCustomMessage("API key encrypted. You'll enter this passphrase once per session.", "success");
+  }, [runtimeProviderOptions, saveLLMSetting, removeLLMSetting, showCustomMessage]);
+
+  const handleDisableEncryption = useCallback(async () => {
+    // If still locked (e.g. forgotten passphrase), clear the options entirely so
+    // the user can re-enter a fresh key; otherwise write the current plaintext back.
+    const keep = optionsLocked ? {} : runtimeProviderOptions;
+    passphraseRef.current = "";
+    await removeLLMSetting("bm_runtime_llm_options_enc");
+    await saveLLMSetting("bm_runtime_llm_options", JSON.stringify(keep));
+    if (optionsLocked) setRuntimeProviderOptions({});
+    setOptionsEncrypted(false);
+    setOptionsLocked(false);
+  }, [optionsLocked, runtimeProviderOptions, saveLLMSetting, removeLLMSetting]);
+
+  const handleUnlockOptions = useCallback(async (passphrase) => {
+    try {
+      const blob = await getLLMSetting("bm_runtime_llm_options_enc");
+      const json = await decryptString(blob, passphrase);
+      setRuntimeProviderOptions(JSON.parse(json));
+      passphraseRef.current = passphrase;
+      setOptionsLocked(false);
+      return true;
+    } catch {
+      return false; // wrong passphrase or corrupt blob
+    }
+  }, [getLLMSetting]);
 
   // ─── UI state ───────────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -439,6 +523,11 @@ const BookmarkApp = () => {
 
   const agentEngine = async (userQuery) => {
     if (!userQuery.trim()) return;
+    // #29: the API key is encrypted and not unlocked this session — can't call the LLM.
+    if (optionsLocked) {
+      showCustomMessage("Your API key is encrypted. Open Options and enter your passphrase to unlock it for this session.", "info");
+      return;
+    }
     const now = Date.now();
     if (now - agentLastCallTimestampRef.current < 500) return;
     agentLastCallTimestampRef.current = now;
@@ -718,10 +807,14 @@ const BookmarkApp = () => {
             onChangeOptions={(opts) => {
               setRuntimeProviderOptions((prev) => {
                 const next = { ...(prev || {}), [runtimeProvider]: { ...(prev?.[runtimeProvider] || {}), ...(opts || {}) } };
-                saveLLMSetting("bm_runtime_llm_options", JSON.stringify(next));
+                persistProviderOptions(next);
                 return next;
               });
             }}
+            encryption={{ encrypted: optionsEncrypted, locked: optionsLocked }}
+            onEnableEncryption={handleEnableEncryption}
+            onDisableEncryption={handleDisableEncryption}
+            onUnlock={handleUnlockOptions}
             currentTheme={currentTheme}
             themes={themes}
             onThemeChange={selectTheme}
