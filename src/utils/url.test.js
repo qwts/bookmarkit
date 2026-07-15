@@ -35,13 +35,25 @@ describe("isPrivateOrLoopbackHost (#10)", () => {
       "::1",
       "fd00::1",
       "fe80::1",
+      "::ffff:127.0.0.1", // IPv4-mapped loopback (dotted)
+      "::ffff:7f00:1", // IPv4-mapped loopback (hex-normalized)
+      "::ffff:169.254.169.254", // IPv4-mapped metadata endpoint
     ]) {
       expect(isPrivateOrLoopbackHost(h)).toBe(true);
     }
   });
 
-  it("allows public hosts", () => {
-    for (const h of ["example.com", "8.8.8.8", "172.15.0.1", "172.32.0.1", "93.184.216.34"]) {
+  it("allows public hosts, incl. domains that start with IPv6 prefixes", () => {
+    for (const h of [
+      "example.com",
+      "8.8.8.8",
+      "172.15.0.1",
+      "172.32.0.1",
+      "93.184.216.34",
+      "fcbarcelona.com", // must NOT be treated as an fc00::/7 IPv6 literal
+      "fdn.example",
+      "fe80.example.com",
+    ]) {
       expect(isPrivateOrLoopbackHost(h)).toBe(false);
     }
   });

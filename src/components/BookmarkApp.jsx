@@ -48,7 +48,8 @@ const BookmarkApp = () => {
   // Init store on mount
   useEffect(() => init(showCustomMessage), []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── LLM provider state (SEC-01: loaded async from chrome.storage.sync) ─────
+  // ─── LLM provider state (#9: stored in chrome.storage.local, not sync — the
+  // API key is a secret and must not replicate to Google's cloud / other devices) ─────
   const [runtimeProvider, setRuntimeProvider] = useState(() => {
     const globalDefault = (typeof __llm_provider__ !== "undefined" && __llm_provider__) || LLM_PROVIDERS.GEMINI;
     return (globalDefault || LLM_PROVIDERS.GEMINI).toString().toLowerCase();
@@ -58,8 +59,23 @@ const BookmarkApp = () => {
   useEffect(() => {
     (async () => {
       try {
-        if (typeof chrome !== "undefined" && chrome.storage) {
-          const storage = chrome.storage.sync || chrome.storage.local;
+        if (typeof chrome !== "undefined" && chrome.storage?.local) {
+          const storage = chrome.storage.local;
+          // #9: one-time migration — pull any secrets a prior version wrote to
+          // chrome.storage.sync into device-local storage, then delete them from
+          // sync so the key stops replicating to Google's backend and other devices.
+          if (chrome.storage.sync) {
+            try {
+              const synced = await chrome.storage.sync.get(["bm_runtime_llm_provider", "bm_runtime_llm_options"]);
+              const migrate = {};
+              if (synced.bm_runtime_llm_provider) migrate.bm_runtime_llm_provider = synced.bm_runtime_llm_provider;
+              if (synced.bm_runtime_llm_options) migrate.bm_runtime_llm_options = synced.bm_runtime_llm_options;
+              if (Object.keys(migrate).length) {
+                await storage.set(migrate);
+                await chrome.storage.sync.remove(["bm_runtime_llm_provider", "bm_runtime_llm_options"]);
+              }
+            } catch { /* sync unavailable — nothing to migrate */ }
+          }
           const result = await storage.get(["bm_runtime_llm_provider", "bm_runtime_llm_options"]);
           let provider = result.bm_runtime_llm_provider;
           let optionsStr = result.bm_runtime_llm_options;
@@ -85,9 +101,9 @@ const BookmarkApp = () => {
 
   const saveLLMSetting = useCallback(async (key, value) => {
     try {
-      if (typeof chrome !== "undefined" && chrome.storage) {
-        const storage = chrome.storage.sync || chrome.storage.local;
-        await storage.set({ [key]: value });
+      if (typeof chrome !== "undefined" && chrome.storage?.local) {
+        // #9: secrets live in device-local storage only, never chrome.storage.sync.
+        await chrome.storage.local.set({ [key]: value });
       } else { localStorage.setItem(key, value); }
     } catch {}
   }, []);
