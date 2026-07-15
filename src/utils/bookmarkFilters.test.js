@@ -54,6 +54,29 @@ describe("mergeAgentPlan (#20)", () => {
     ]);
   });
 
+  it("collapses duplicate prior slots for a replaced action (#32 bound)", () => {
+    const previous = [
+      { action: "searchBookmarks", parameters: { searchTerm: "a" } },
+      { action: "sortBookmarks", parameters: { sortBy: "rating" } },
+      { action: "searchBookmarks", parameters: { searchTerm: "b" } },
+    ];
+    const steps = [{ action: "searchBookmarks", parameters: { searchTerm: "c" } }];
+    const result = mergeAgentPlan(previous, steps);
+    expect(result.map((s) => s.action)).toEqual(["searchBookmarks", "sortBookmarks"]);
+    expect(result.filter((s) => s.action === "searchBookmarks")).toHaveLength(1);
+    expect(result[0].parameters.searchTerm).toBe("c");
+  });
+
+  it("dedups repeated actions within a single incoming plan", () => {
+    const steps = [
+      { action: "searchBookmarks", parameters: { searchTerm: "x" } },
+      { action: "searchBookmarks", parameters: { searchTerm: "y" } },
+    ];
+    const result = mergeAgentPlan([], steps);
+    expect(result).toHaveLength(1);
+    expect(result[0].parameters.searchTerm).toBe("y"); // last wins
+  });
+
   it("clears the accumulated plan on reset/showAll", () => {
     const previous = [{ action: "searchBookmarks" }, { action: "sortBookmarks" }];
     expect(mergeAgentPlan(previous, [{ action: "resetSearch" }])).toEqual([
