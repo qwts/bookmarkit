@@ -107,8 +107,22 @@ export const sortStepsByPriority = (steps = []) => {
 export const mergeAgentPlan = (previous = [], steps = []) => {
   const prev = Array.isArray(previous) ? previous : previous ? [previous] : [];
   if (steps.some((s) => RESET_ACTIONS.includes(s.action))) return steps;
-  const newActions = new Set(steps.map((s) => s.action));
-  return [...prev.filter((s) => !newActions.has(s.action)), ...steps];
+  // Replace a same-action prior step *in its original slot* so execution order
+  // (which matters when steps carry no numeric priority) is preserved; only
+  // genuinely new actions are appended (Codex #32).
+  const replacement = new Map(steps.map((s) => [s.action, s]));
+  const used = new Set();
+  const merged = prev.map((s) => {
+    if (replacement.has(s.action)) {
+      used.add(s.action);
+      return replacement.get(s.action);
+    }
+    return s;
+  });
+  for (const s of steps) {
+    if (!used.has(s.action)) merged.push(s);
+  }
+  return merged;
 };
 
 // PERF-08: applyAgentPlan is a pure function — given the same plan + list it always
