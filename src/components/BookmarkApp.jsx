@@ -5,6 +5,7 @@ import { parseAgentResponse } from "../llm/parser.js";
 import { classifyLLMError } from "../llm/errors.js";
 import { applyAgentPlan, mergeAgentPlan, sortStepsByPriority } from "../utils/bookmarkFilters.js";
 import { filterDuplicateImports, findDuplicateIds } from "../utils/duplicates.js";
+import { isSafeHttpUrl } from "../utils/url.js";
 import { useBookmarkStore } from "../hooks/useBookmarkStore.js";
 import { useTheme } from "../hooks/useTheme.js";
 import { useDebounce } from "../hooks/useDebounce.js";
@@ -258,7 +259,9 @@ const BookmarkApp = () => {
 
   const handleBookmarkClick = useCallback((bookmark, e) => {
     if (e?.shiftKey || e?.key === " ") {
-      window.open(bookmark.url, "_blank", "noopener,noreferrer");
+      // #11: only open http(s) URLs; block javascript:/data:/etc.
+      if (isSafeHttpUrl(bookmark.url)) window.open(bookmark.url, "_blank", "noopener,noreferrer");
+      else showCustomMessage("This bookmark has an unsupported or unsafe URL and was not opened.", "error");
       setSelectedBookmarkId(null);
       setMultiSelectedBookmarkIds([]);
       return;
@@ -285,7 +288,12 @@ const BookmarkApp = () => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (e.shiftKey) {
-        if (bookmark.url) { window.open(bookmark.url, "_blank", "noopener,noreferrer"); setSelectedBookmarkId(null); setMultiSelectedBookmarkIds([]); }
+        if (bookmark.url) {
+          // #11: only open http(s) URLs; block javascript:/data:/etc.
+          if (isSafeHttpUrl(bookmark.url)) window.open(bookmark.url, "_blank", "noopener,noreferrer");
+          else showCustomMessage("This bookmark has an unsupported or unsafe URL and was not opened.", "error");
+          setSelectedBookmarkId(null); setMultiSelectedBookmarkIds([]);
+        }
         return;
       }
       handleBookmarkClick(bookmark);
@@ -488,7 +496,9 @@ const BookmarkApp = () => {
   // ─── Import handlers ─────────────────────────────────────────────────────────
   const handleImportJson = useCallback(async (arr, replaceAll = false) => {
     const existing = replaceAll ? [] : bookmarks;
-    const { bookmarks: bookmarksToImport, skippedCount } = filterDuplicateImports(arr, existing);
+    // #11: only import entries with a safe http(s) URL.
+    const safe = (Array.isArray(arr) ? arr : []).filter((b) => b && typeof b === "object" && isSafeHttpUrl(b.url));
+    const { bookmarks: bookmarksToImport, skippedCount } = filterDuplicateImports(safe, existing);
 
     if (replaceAll) {
       await saveAllBookmarks(bookmarksToImport);
@@ -524,8 +534,10 @@ const BookmarkApp = () => {
         };
       });
 
+      // #11: only import links with a safe http(s) URL.
+      const safeBookmarks = importedBookmarks.filter((b) => isSafeHttpUrl(b.url));
       const existing = replaceAll ? [] : bookmarks;
-      const { bookmarks: bookmarksToImport, skippedCount } = filterDuplicateImports(importedBookmarks, existing);
+      const { bookmarks: bookmarksToImport, skippedCount } = filterDuplicateImports(safeBookmarks, existing);
 
       if (replaceAll) {
         await saveAllBookmarks(bookmarksToImport);
@@ -533,7 +545,7 @@ const BookmarkApp = () => {
         await appendBookmarks(bookmarksToImport);
       }
 
-      if (importedBookmarks.length > 0) {
+      if (safeBookmarks.length > 0) {
         const result = getImportResultMessage(bookmarksToImport.length, skippedCount, "No bookmarks found in the imported HTML.");
         showCustomMessage(result.message, result.type);
       } else {
