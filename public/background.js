@@ -10,21 +10,43 @@ chrome.action.onClicked.addListener(() => {
 // #10: A host is private/loopback/link-local (or non-public). Mirrors
 // isPrivateOrLoopbackHost in src/utils/url.js (the service worker can't import
 // the app bundle). Keep the two in sync.
+function isPrivateIpv4(host) {
+  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return false;
+  const a = Number(m[1]);
+  const b = Number(m[2]);
+  if (a === 0 || a === 127 || a === 10) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 169 && b === 254) return true; // link-local incl. cloud metadata
+  return false;
+}
+
+function mappedIpv4(host) {
+  const m = host.match(/^::ffff:(.+)$/i);
+  if (!m) return null;
+  const rest = m[1];
+  if (rest.includes(".")) return rest;
+  const parts = rest.split(":");
+  if (parts.length !== 2) return null;
+  const hi = parseInt(parts[0], 16);
+  const lo = parseInt(parts[1], 16);
+  if (Number.isNaN(hi) || Number.isNaN(lo)) return null;
+  return `${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`;
+}
+
 function isPrivateOrLoopbackHost(hostname) {
   if (!hostname) return true;
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (host === "localhost" || host.endsWith(".localhost")) return true;
-  if (host === "::1" || host === "::") return true;
-  if (host.startsWith("fc") || host.startsWith("fd")) return true; // IPv6 unique-local
-  if (host.startsWith("fe80")) return true; // IPv6 link-local
-  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (m) {
-    const a = Number(m[1]);
-    const b = Number(m[2]);
-    if (a === 0 || a === 127 || a === 10) return true;
-    if (a === 192 && b === 168) return true;
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 169 && b === 254) return true; // link-local incl. cloud metadata
+  if (isPrivateIpv4(host)) return true;
+  if (host.includes(":")) {
+    // IPv6 literal only — never match domains that merely start with these.
+    if (host === "::1" || host === "::") return true;
+    if (host.startsWith("fc") || host.startsWith("fd")) return true; // unique-local
+    if (host.startsWith("fe80")) return true; // link-local
+    const v4 = mappedIpv4(host);
+    if (v4 && isPrivateIpv4(v4)) return true;
   }
   return false;
 }
@@ -54,6 +76,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000) })
     .then((res) => {
+      // #10 (Codex): a public URL can redirect to an internal host. res.url is the
+      // final URL after redirects — if it is no longer public, treat as invalid and
+      // never hand an internal redirect target back to the app.
+      if (res.url && !isPublicHttpUrl(res.url)) {
+        sendResponse({ status: "invalid", redirectUrl: null });
+        return;
+      }
       const redirectUrl = res.url && res.url !== url ? res.url : null;
       sendResponse({ status: res.ok ? "valid" : "invalid", redirectUrl });
     })
