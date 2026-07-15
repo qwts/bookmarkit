@@ -42,6 +42,18 @@ describe("mergeAgentPlan (#20)", () => {
     expect(mergeAgentPlan(previous, steps)).toEqual([...previous, ...steps]);
   });
 
+  it("replaces a step in its original slot, not at the end (#32 ordering)", () => {
+    const previous = [
+      { action: "searchBookmarks", parameters: { searchTerm: "react" } },
+      { action: "sortBookmarks", parameters: { sortBy: "rating" } },
+    ];
+    const steps = [{ action: "searchBookmarks", parameters: { searchTerm: "vue" } }];
+    expect(mergeAgentPlan(previous, steps).map((s) => s.action)).toEqual([
+      "searchBookmarks", // stays in slot 0, before the sort
+      "sortBookmarks",
+    ]);
+  });
+
   it("clears the accumulated plan on reset/showAll", () => {
     const previous = [{ action: "searchBookmarks" }, { action: "sortBookmarks" }];
     expect(mergeAgentPlan(previous, [{ action: "resetSearch" }])).toEqual([
