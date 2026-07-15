@@ -5,7 +5,8 @@ import { getFirestore, enableIndexedDbPersistence, collection, doc, onSnapshot, 
 
 export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken }) {
   let listeners = new Set();
-  let unsubSnapshot = null;
+  // TODO(#19): the returned unsubscribe is never called on teardown — listener leak.
+  let unsubSnapshot = null; // eslint-disable-line no-unused-vars
   let db = null;
   let auth = null;
   let userId = null;
