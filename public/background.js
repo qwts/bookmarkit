@@ -74,17 +74,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ status: "invalid", redirectUrl: null });
     return false;
   }
-  fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000) })
+  // #10 (Codex): do NOT let fetch follow redirects from the privileged worker —
+  // a 30x Location could point at an internal host (127.0.0.1 / 169.254.169.254),
+  // and the redirected request fires before we could inspect it. `redirect: "manual"`
+  // stops the follow; a redirect yields an opaqueredirect response we treat as
+  // "reachable, but we don't chase or expose the target."
+  fetch(url, { method: "HEAD", redirect: "manual", signal: AbortSignal.timeout(5000) })
     .then((res) => {
-      // #10 (Codex): a public URL can redirect to an internal host. res.url is the
-      // final URL after redirects — if it is no longer public, treat as invalid and
-      // never hand an internal redirect target back to the app.
-      if (res.url && !isPublicHttpUrl(res.url)) {
-        sendResponse({ status: "invalid", redirectUrl: null });
+      if (res.type === "opaqueredirect") {
+        sendResponse({ status: "valid", redirectUrl: null });
         return;
       }
-      const redirectUrl = res.url && res.url !== url ? res.url : null;
-      sendResponse({ status: res.ok ? "valid" : "invalid", redirectUrl });
+      sendResponse({ status: res.ok ? "valid" : "invalid", redirectUrl: null });
     })
     .catch(() => sendResponse({ status: "invalid", redirectUrl: null }));
   return true; // keep message channel open for async response
