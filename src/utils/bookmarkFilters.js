@@ -109,18 +109,28 @@ export const mergeAgentPlan = (previous = [], steps = []) => {
   if (steps.some((s) => RESET_ACTIONS.includes(s.action))) return steps;
   // Replace a same-action prior step *in its original slot* so execution order
   // (which matters when steps carry no numeric priority) is preserved; only
-  // genuinely new actions are appended (Codex #32).
-  const replacement = new Map(steps.map((s) => [s.action, s]));
-  const used = new Set();
-  const merged = prev.map((s) => {
+  // genuinely new actions are appended. Each action ends up exactly once —
+  // extra duplicate slots in `previous` and repeated incoming actions are
+  // collapsed, keeping the one-step-per-action bound (Codex #32).
+  const replacement = new Map(steps.map((s) => [s.action, s])); // last wins per action
+  const placed = new Set();
+  const merged = [];
+  for (const s of prev) {
     if (replacement.has(s.action)) {
-      used.add(s.action);
-      return replacement.get(s.action);
+      if (!placed.has(s.action)) {
+        placed.add(s.action);
+        merged.push(replacement.get(s.action)); // first matching slot only
+      }
+      // drop additional stale duplicate slots for this action
+    } else {
+      merged.push(s);
     }
-    return s;
-  });
+  }
   for (const s of steps) {
-    if (!used.has(s.action)) merged.push(s);
+    if (!placed.has(s.action)) {
+      placed.add(s.action);
+      merged.push(replacement.get(s.action));
+    }
   }
   return merged;
 };
