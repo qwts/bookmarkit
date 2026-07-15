@@ -84,18 +84,39 @@ export const limitResults = (count, list, direction = "first") => {
   return direction === "last" ? list.slice(-n) : list.slice(0, n);
 };
 
+const RESET_ACTIONS = ["resetSearch", "showAllBookmarks"];
+
+// #21: Order steps by their numeric `priority` (lower runs first), falling back
+// to original array order for ties or when no step declares a priority. Shared
+// by applyAgentPlan (display) and the agent's imperative side-effect loop so
+// both honor the ordering the LLM was asked to produce.
+export const sortStepsByPriority = (steps = []) => {
+  const list = Array.isArray(steps) ? steps : [steps];
+  if (!list.some((s) => typeof s?.priority === "number")) return list;
+  return list
+    .map((s, idx) => ({ s, idx }))
+    .sort((a, b) => a.s.priority - b.s.priority || a.idx - b.idx)
+    .map((x) => x.s);
+};
+
+// #20: Merge a newly parsed plan into the accumulated one. New steps replace any
+// prior step with the same action (so re-searching a different term does not
+// stack on top of the old filter), while steps of a different action still
+// refine the view. A reset/showAll clears the accumulated plan. This bounds the
+// plan to at most one step per action instead of growing without limit.
+export const mergeAgentPlan = (previous = [], steps = []) => {
+  const prev = Array.isArray(previous) ? previous : previous ? [previous] : [];
+  if (steps.some((s) => RESET_ACTIONS.includes(s.action))) return steps;
+  const newActions = new Set(steps.map((s) => s.action));
+  return [...prev.filter((s) => !newActions.has(s.action)), ...steps];
+};
+
 // PERF-08: applyAgentPlan is a pure function — given the same plan + list it always
 // returns the same reference-equal result when inputs are stable.
 export const applyAgentPlan = (plan, list) => {
   if (!plan) return list;
   const actions = Array.isArray(plan) ? plan : [plan];
-  const hasPriority = actions.some((s) => typeof s?.priority === "number");
-  const ordered = hasPriority
-    ? actions
-        .map((s, idx) => ({ s, idx }))
-        .sort((a, b) => a.s.priority - b.s.priority || a.idx - b.idx)
-        .map((x) => x.s)
-    : actions;
+  const ordered = sortStepsByPriority(actions);
   let currentResults = [...list];
   for (const step of ordered) {
     const { action, parameters = {} } = step;
