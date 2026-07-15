@@ -122,7 +122,8 @@ const BookmarkApp = () => {
         // #9: secrets live in device-local storage only, never chrome.storage.sync.
         await chrome.storage.local.set({ [key]: value });
       } else { localStorage.setItem(key, value); }
-    } catch {}
+      return true;
+    } catch { return false; } // #36: report failure so callers don't drop plaintext on a failed encrypted write
   }, []);
 
   const removeLLMSetting = useCallback(async (key) => {
@@ -148,8 +149,9 @@ const BookmarkApp = () => {
     try {
       if (optionsEncrypted && passphraseRef.current) {
         const blob = await encryptString(JSON.stringify(nextOptions), passphraseRef.current);
-        await saveLLMSetting("bm_runtime_llm_options_enc", blob);
-        await removeLLMSetting("bm_runtime_llm_options");
+        // #36: only remove the plaintext copy once the encrypted write actually succeeds.
+        const ok = await saveLLMSetting("bm_runtime_llm_options_enc", blob);
+        if (ok) await removeLLMSetting("bm_runtime_llm_options");
       } else {
         await saveLLMSetting("bm_runtime_llm_options", JSON.stringify(nextOptions));
       }
@@ -158,13 +160,19 @@ const BookmarkApp = () => {
 
   const handleEnableEncryption = useCallback(async (passphrase) => {
     if (!passphrase) return;
-    passphraseRef.current = passphrase;
-    const blob = await encryptString(JSON.stringify(runtimeProviderOptions), passphrase);
-    await saveLLMSetting("bm_runtime_llm_options_enc", blob);
-    await removeLLMSetting("bm_runtime_llm_options");
-    setOptionsEncrypted(true);
-    setOptionsLocked(false);
-    showCustomMessage("API key encrypted. You'll enter this passphrase once per session.", "success");
+    try {
+      const blob = await encryptString(JSON.stringify(runtimeProviderOptions), passphrase);
+      // #36: don't remove the plaintext key or flip to "encrypted" unless the write succeeded.
+      const ok = await saveLLMSetting("bm_runtime_llm_options_enc", blob);
+      if (!ok) { showCustomMessage("Couldn't save the encrypted key. Encryption not enabled.", "error"); return; }
+      await removeLLMSetting("bm_runtime_llm_options");
+      passphraseRef.current = passphrase;
+      setOptionsEncrypted(true);
+      setOptionsLocked(false);
+      showCustomMessage("API key encrypted. You'll enter this passphrase once per session.", "success");
+    } catch {
+      showCustomMessage("Couldn't encrypt the API key. Encryption not enabled.", "error");
+    }
   }, [runtimeProviderOptions, saveLLMSetting, removeLLMSetting, showCustomMessage]);
 
   const handleDisableEncryption = useCallback(async () => {
