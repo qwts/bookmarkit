@@ -85,6 +85,11 @@ export default defineConfig([
     extends: [js.configs.recommended, prettier],
     languageOptions: {
       ecmaVersion: 2020,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
       globals: {
         ...globals.browser,
         ...globals.webextensions,
@@ -100,7 +105,8 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', caughtErrors: 'none' }],
+      // ^[A-Z_] covers JSX component imports used only in markup (no eslint-plugin-react here).
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_', caughtErrors: 'none' }],
     },
   },
 
