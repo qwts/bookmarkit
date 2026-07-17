@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { sortStepsByPriority, mergeAgentPlan, applyAgentPlan } from "./bookmarkFilters.js";
+import {
+  sortStepsByPriority,
+  mergeAgentPlan,
+  applyAgentPlan,
+  findWithTags,
+} from "./bookmarkFilters.js";
 
 describe("sortStepsByPriority (#21)", () => {
   it("orders by numeric priority, lowest first", () => {
@@ -117,5 +122,38 @@ describe("applyAgentPlan honors priority (#21)", () => {
     const result = applyAgentPlan(plan, list);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("1"); // highest rating after sort-then-limit
+  });
+});
+
+// findWithTags had no direct coverage; the agent reaches it via the findWithTags action with
+// LLM-produced tag values, so it needs the same normalization guarantees as the chip path (#58).
+describe("findWithTags", () => {
+  const list = [
+    { id: "1", tags: [" docs ", "React"] },
+    { id: "2", tags: ["docs"] },
+    { id: "3", tags: ["news"] },
+    { id: "4" },
+  ];
+
+  it("matches regardless of surrounding whitespace or case on either side", () => {
+    expect(findWithTags(["docs"], [], list).map((b) => b.id)).toEqual(["1", "2"]);
+    expect(findWithTags(["  DOCS  "], [], list).map((b) => b.id)).toEqual(["1", "2"]);
+    expect(findWithTags(["react"], [], list).map((b) => b.id)).toEqual(["1"]);
+  });
+
+  it("requires every include tag to be present", () => {
+    expect(findWithTags(["docs", "react"], [], list).map((b) => b.id)).toEqual(["1"]);
+  });
+
+  it("excludes on any matching exclude tag", () => {
+    expect(findWithTags([], ["docs"], list).map((b) => b.id)).toEqual(["3", "4"]);
+  });
+
+  it("ignores blank query tags instead of blanking the view", () => {
+    expect(findWithTags(["  "], [], list).map((b) => b.id)).toEqual(["1", "2", "3", "4"]);
+  });
+
+  it("tolerates bookmarks with missing or non-array tags", () => {
+    expect(findWithTags(["docs"], [], [{ id: "x" }, { id: "y", tags: "docs" }])).toEqual([]);
   });
 });
