@@ -3,7 +3,13 @@
 // identical results for equivalent criteria — the agent is a convenience layer over
 // this, not a separate code path.
 
-import { searchBookmarks, findWithTags, filterByRating, sortBookmarks } from "./bookmarkFilters.js";
+import {
+  searchBookmarks,
+  findWithTags,
+  filterByRating,
+  sortBookmarks,
+  normalizeTag,
+} from "./bookmarkFilters.js";
 
 export const EMPTY_FILTERS = Object.freeze({
   text: "",
@@ -58,7 +64,9 @@ export function deriveTagCounts(list = []) {
     // A bookmark tagged ["react","React"] must count once, not twice.
     const seen = new Set();
     for (const raw of tags) {
-      const tag = (raw ?? "").toString().trim().toLowerCase();
+      // Must be the same rule findWithTags matches with, or a chip's count won't agree with
+      // what clicking it returns.
+      const tag = normalizeTag(raw);
       if (!tag || seen.has(tag)) continue;
       seen.add(tag);
       counts.set(tag, (counts.get(tag) || 0) + 1);

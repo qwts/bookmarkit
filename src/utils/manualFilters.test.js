@@ -173,3 +173,33 @@ describe("applyManualFilters", () => {
     expect(list).toEqual(snapshot);
   });
 });
+
+// Codex review on #58: deriveTagCounts trimmed tags but findWithTags did not, so a chip built
+// from an untrimmed tag filtered away the very bookmark that produced its count. Tags reach the
+// store unnormalized (JSON import passes `tags` straight through), so this is reachable.
+describe("chip counts agree with chip filtering (regression, #58)", () => {
+  const untrimmed = [
+    { id: "1", title: "Docs", url: "http://a.com", tags: [" docs "] },
+    { id: "2", title: "Other", url: "http://b.com", tags: ["\tDocs\n"] },
+    { id: "3", title: "Unrelated", url: "http://c.com", tags: ["news"] },
+  ];
+
+  it("counts whitespace/case variants of a tag as one facet", () => {
+    expect(deriveTagCounts(untrimmed)).toEqual([
+      { tag: "docs", count: 2 },
+      { tag: "news", count: 1 },
+    ]);
+  });
+
+  it("clicking a chip returns exactly the bookmarks it counted", () => {
+    const facet = deriveTagCounts(untrimmed).find((f) => f.tag === "docs");
+    const shown = applyManualFilters({ ...EMPTY_FILTERS, includeTags: ["docs"] }, untrimmed);
+    expect(shown.map((b) => b.id)).toEqual(["1", "2"]);
+    expect(shown).toHaveLength(facet.count);
+  });
+
+  it("excluding a chip removes exactly those bookmarks", () => {
+    const shown = applyManualFilters({ ...EMPTY_FILTERS, excludeTags: ["docs"] }, untrimmed);
+    expect(shown.map((b) => b.id)).toEqual(["3"]);
+  });
+});

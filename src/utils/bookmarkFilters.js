@@ -14,11 +14,20 @@ export const searchBookmarks = (searchTerm, list) => {
   );
 };
 
+// The single normalization rule for tag equality. Tags reach the store unnormalized — JSON import
+// passes `tags` straight through, and the agent can emit whatever the LLM produced — so both sides
+// of every comparison must be normalized identically. deriveTagCounts (manualFilters.js) builds the
+// chip facets with this same function, which is what keeps a chip's count and the result of
+// clicking it in agreement (Codex, #58).
+export const normalizeTag = (tag) => (tag ?? "").toString().trim().toLowerCase();
+
 export const findWithTags = (includeTags = [], excludeTags = [], list) => {
-  const lowerInclude = includeTags.map((t) => t.toLowerCase());
-  const lowerExclude = excludeTags.map((t) => t.toLowerCase());
+  // Blank query tags are dropped rather than compared: an empty include would otherwise match
+  // nothing and silently blank the view.
+  const lowerInclude = includeTags.map(normalizeTag).filter(Boolean);
+  const lowerExclude = excludeTags.map(normalizeTag).filter(Boolean);
   return list.filter((b) => {
-    const bookmarkTags = b.tags ? b.tags.map((bt) => bt.toLowerCase()) : [];
+    const bookmarkTags = Array.isArray(b.tags) ? b.tags.map(normalizeTag) : [];
     return (
       lowerInclude.every((tag) => bookmarkTags.includes(tag)) &&
       !lowerExclude.some((tag) => bookmarkTags.includes(tag))
