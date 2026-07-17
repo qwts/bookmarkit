@@ -2,6 +2,7 @@
 export default {
   content: [
     "./index.html",
+    "./popup.html",
     "./public/**/*.html",
     "./src/**/*.{js,jsx,ts,tsx,html}",
   ],

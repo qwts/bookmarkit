@@ -9,7 +9,10 @@ const __dirname = path.dirname(__filename);
 const distDir = path.resolve(__dirname, '../dist');
 const publicDir = path.resolve(__dirname, '../public');
 
-['manifest.json', 'background.js', 'popup.html', 'icon16.png', 'icon48.png', 'icon128.png'].forEach(file => {
+// #51: popup.html is no longer copied from public/ — it's a real Vite entry point now
+// (built to dist/popup.html with hashed assets). Copying a placeholder over it here
+// would clobber the built popup.
+['manifest.json', 'background.js', 'icon16.png', 'icon48.png', 'icon128.png'].forEach(file => {
   const src = path.join(publicDir, file);
   const dest = path.join(distDir, file);
   if (fs.existsSync(src)) {

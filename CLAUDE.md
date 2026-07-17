@@ -7,26 +7,62 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev          # Build with sourcemaps, no minification (NOT a live dev server — outputs to dist/)
 npm run build        # Production build to dist/
-npm run build:chrome # Production build + copy manifest/background/content/icons to dist/ for Chrome extension
+npm run build:chrome # Production build + copy manifest/background/icons to dist/ for Chrome extension
 npm run preview      # Serve the dist/ folder locally
 npm run lint         # Run ESLint
+npm test             # Run the Vitest suite once
+npm run test:watch   # Vitest in watch mode
 ```
 
 > **Important:** `npm run dev` runs `vite build --mode development`, not `vite`. There is no HMR dev server — the output goes to `dist/`. Preview with `npm run preview` after each build.
 
-There are no tests in this project.
+Tests run on Vitest + Testing Library (jsdom), colocated as `src/**/*.test.{js,jsx}`. Pure utils
+(`bookmarkFilters`, `manualFilters`, `duplicates`, `url`, `keyCrypto`, `parser`) have unit coverage;
+components are tested with mocked `chrome.*` globals and a faked store.
 
 ## Architecture
 
 ### Dual deployment target
 
-The app ships as both a **Vite/React web app** and a **Chrome MV3 extension**. The UI is identical in both; the difference is storage backend and extension-specific files (`public/manifest.json`, `public/background.js`, `public/content.js`). `npm run build:chrome` copies those into `dist/` after the Vite build.
+The app ships as both a **Vite/React web app** and a **Chrome MV3 extension**. The UI is identical in both; the difference is storage backend and extension-specific files (`public/manifest.json`, `public/background.js`). `npm run build:chrome` copies those into `dist/` after the Vite build. There is no content script — nothing is injected into web pages.
+
+> Note: the default `LOCAL` store needs the `chrome.bookmarks` API, so the web-app target only
+> functions with `__use_firebase__` set. There is no plain-localStorage-only store.
+
+### Build entry points
+
+Vite builds **two** HTML entries (`rollupOptions.input` in `vite.config.js`):
+
+| Entry | Source | Becomes |
+|---|---|---|
+| `index.html` | `src/main.jsx` → `BookmarkApp` | The full app (opened in a tab) |
+| `popup.html` | `src/popup/main.jsx` → `QuickAdd` | The extension toolbar popup (`action.default_popup`) |
+
+`popup.html` lives at the repo root (not `public/`) because it's a real Vite entry — `build-chrome.js`
+must **not** copy anything over `dist/popup.html`.
 
 ### Component structure
 
 All bookmark UI state and logic lives in a single large component: `src/components/BookmarkApp.jsx`. This is intentional — it holds the store ref, LLM agent engine, keyboard shortcuts, theme state, and all modal visibility. `src/App.jsx` is a thin wrapper that just renders `BookmarkApp`.
 
 Modal components (`BookmarkForm`, `ImportExportContent`, `DeleteConfirmModal`, `HelpModal`, `OptionsModal`, `MessageModal`) are all rendered inline in `BookmarkApp` with portal-style full-screen overlays.
+
+`src/popup/QuickAdd.jsx` is a separate top-level component for the toolbar popup. It reuses
+`useBookmarkStore`/`useTheme` so the popup and the app never diverge into two write paths.
+
+### Filtering: two layers
+
+`displayedBookmarks` is computed as **agent plan first, manual filters second**:
+
+```
+bookmarks → applyAgentPlan(lastAction) → applyManualFilters(effectiveFilters) → displayedBookmarks
+```
+
+- `src/utils/bookmarkFilters.js` — pure primitives + the agent plan (`applyAgentPlan`, `mergeAgentPlan`).
+- `src/utils/manualFilters.js` — the LLM-free `FilterBar` layer, composing those same primitives.
+
+Manual sort runs last, so it wins over an agent sort. The two clear independently ("Clear filters" vs
+"Clear Search"); the empty-state CTA clears both.
 
 ### Store abstraction (`src/stores/`)
 
