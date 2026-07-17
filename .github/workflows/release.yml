@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing exact v<package-version> tag to package and release"
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+# Normally dispatched by version-cut.yml after it creates the version tag. The tag trigger also
+# covers tags pushed by humans; workflow_dispatch is the recovery path for GITHUB_TOKEN tags,
+# whose pushes do not trigger another workflow. Every build checks out the tag, never main.
+# This workflow publishes GitHub Release assets only — it does not merge version PRs or submit
+# to the Chrome Web Store.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Validate and cut release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          DISPATCH_TAG: ${{ inputs.tag }}
+        run: |
+          tag="${DISPATCH_TAG:-$GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Release tag must be stable three-component semver with a v prefix, got $tag." >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout release source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+          fetch-depth: 0
+
+      # A tag pointing at a commit that never landed on main would publish unreviewed code under a
+      # version number. Refuse rather than trust whoever pushed the tag.
+      #
+      # Fetch main explicitly instead of assuming origin/main: this checkout is of a tag, so the
+      # remote-tracking branch is not guaranteed to exist and `origin/main` would fail to resolve
+      # for reasons unrelated to the actual ancestry question.
+      - name: Require tagged source to be on main
+        env:
+          TAG_NAME: ${{ steps.release.outputs.tag }}
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$(git rev-list -n 1 "$TAG_NAME")" FETCH_HEAD; then
+            echo "$TAG_NAME is not an ancestor of main — refusing to release untracked source." >&2
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Re-run the full gate against the tag itself. CI passing on main is not proof the tagged
+      # tree is green — the tag is what users install.
+      - name: Run required validation
+        run: npm run ci
+
+      - name: Package release
+        run: |
+          node scripts/check-version-policy.mjs --built
+          node scripts/package-release.mjs --tag "${{ steps.release.outputs.tag }}"
+
+      - name: Create or refresh GitHub Release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.release.outputs.tag }}
+        run: |
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release upload "$TAG_NAME" release/*.zip release/*.sha256 --clobber
+          else
+            gh release create "$TAG_NAME" release/*.zip release/*.sha256 \
+              --verify-tag \
+              --generate-notes \
+              --latest \
+              --title "bookmarkit $TAG_NAME"
+          fi

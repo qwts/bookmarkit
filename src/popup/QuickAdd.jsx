@@ -36,27 +36,67 @@ function QuickAddFields({ form, setForm, folderOptions }) {
   return (
     <>
       <div>
-        <label htmlFor="qa-title" className="sr-only">Title</label>
-        <input id="qa-title" type="text" value={form.title} onChange={set("title")} placeholder="Title" className={inputClass} autoFocus />
+        <label htmlFor="qa-title" className="sr-only">
+          Title
+        </label>
+        <input
+          id="qa-title"
+          type="text"
+          value={form.title}
+          onChange={set("title")}
+          placeholder="Title"
+          className={inputClass}
+          autoFocus
+        />
       </div>
 
       <div>
-        <label htmlFor="qa-url" className="sr-only">URL</label>
-        <input id="qa-url" type="text" value={form.url} onChange={set("url")} placeholder="https://…" className={`${inputClass} text-xs`} />
+        <label htmlFor="qa-url" className="sr-only">
+          URL
+        </label>
+        <input
+          id="qa-url"
+          type="text"
+          value={form.url}
+          onChange={set("url")}
+          placeholder="https://…"
+          className={`${inputClass} text-xs`}
+        />
       </div>
 
       <div className="flex gap-2">
         <div className="flex-1">
-          <label htmlFor="qa-tags" className="sr-only">Tags, comma separated</label>
-          <input id="qa-tags" type="text" value={form.tags} onChange={set("tags")} placeholder="tags, comma, separated" className={inputClass} />
+          <label htmlFor="qa-tags" className="sr-only">
+            Tags, comma separated
+          </label>
+          <input
+            id="qa-tags"
+            type="text"
+            value={form.tags}
+            onChange={set("tags")}
+            placeholder="tags, comma, separated"
+            className={inputClass}
+          />
         </div>
         <div className="flex-1">
-          <label htmlFor="qa-folder" className="sr-only">Folder</label>
-          <input id="qa-folder" type="text" value={form.folderId} onChange={set("folderId")} placeholder="Folder (e.g. Work/API)" className={inputClass} list="qa-folders" />
+          <label htmlFor="qa-folder" className="sr-only">
+            Folder
+          </label>
+          <input
+            id="qa-folder"
+            type="text"
+            value={form.folderId}
+            onChange={set("folderId")}
+            placeholder="Folder (e.g. Work/API)"
+            className={inputClass}
+            list="qa-folders"
+          />
           {/* Cheap folder autocomplete against paths already in use — typing a folder
               path blind is how you end up with both "work" and "Work". */}
           <datalist id="qa-folders">
-            {folderOptions.map((f) => <option key={f} value={f} />)}
+            {folderOptions.map((f) => (
+              <option key={f} value={f} />
+            ))}
           </datalist>
         </div>
       </div>
@@ -70,7 +110,10 @@ function PopupError({ message, onOpenApp }) {
   return (
     <div className="p-4 w-[22rem]" style={shellStyle}>
       <p className="text-sm text-secondary-text mb-3">{message}</p>
-      <button onClick={onOpenApp} className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent">
+      <button
+        onClick={onOpenApp}
+        className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent"
+      >
         Open bookmarkit
       </button>
     </div>
@@ -80,7 +123,12 @@ function PopupError({ message, onOpenApp }) {
 function PopupLoading() {
   return (
     <div className="p-6 w-[22rem] flex items-center justify-center" style={shellStyle}>
-      <div className="animate-spin rounded-full h-5 w-5 border-b-2" style={{ borderColor: "var(--accent)" }} role="status" aria-label="Loading" />
+      <div
+        className="animate-spin rounded-full h-5 w-5 border-b-2"
+        style={{ borderColor: "var(--accent)" }}
+        role="status"
+        aria-label="Loading"
+      />
     </div>
   );
 }
@@ -99,7 +147,7 @@ const QuickAdd = () => {
 
   const folderOptions = useMemo(
     () => [...new Set(bookmarks.map((b) => b.folderId).filter(Boolean))],
-    [bookmarks],
+    [bookmarks]
   );
 
   // Read the active tab. url/title/favIconUrl are readable under the existing
@@ -164,7 +212,10 @@ const QuickAdd = () => {
         id: existing?.id ?? null,
         title: form.title.trim() || url,
         url,
-        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        tags: form.tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
         rating: form.rating,
         folderId: form.folderId.trim(),
         // Prefer the favicon the tab already reports: it's accurate, and it means this
@@ -186,10 +237,16 @@ const QuickAdd = () => {
   // Enter saves from any single-line field; Escape closes the popup.
   const onKeyDown = useCallback(
     (e) => {
-      if (e.key === "Escape") { window.close(); return; }
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSave(); }
+      if (e.key === "Escape") {
+        window.close();
+        return;
+      }
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSave();
+      }
     },
-    [handleSave],
+    [handleSave]
   );
 
   if (tabError) return <PopupError message={tabError} onOpenApp={openFullApp} />;
@@ -224,7 +281,9 @@ const QuickAdd = () => {
       </div>
 
       {status.state === "error" && (
-        <p className="text-xs text-red-600" role="alert">{status.message}</p>
+        <p className="text-xs text-red-600" role="alert">
+          {status.message}
+        </p>
       )}
 
       <div className="flex gap-2 mt-1">

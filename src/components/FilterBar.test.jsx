@@ -48,14 +48,26 @@ describe("FilterBar (#53)", () => {
   it("announces the include/exclude state of a chip to screen readers", () => {
     const included = cycleTag(EMPTY_FILTERS, "docs");
     const { unmount } = render(
-      <FilterBar filters={included} tagFacets={tagFacets} onChange={() => {}} onCycleTag={() => {}} onClear={() => {}} />,
+      <FilterBar
+        filters={included}
+        tagFacets={tagFacets}
+        onChange={() => {}}
+        onCycleTag={() => {}}
+        onClear={() => {}}
+      />
     );
     expect(screen.getByRole("button", { name: /Tag docs.*including/ })).toBeInTheDocument();
     unmount();
 
     const excluded = cycleTag(included, "docs");
     render(
-      <FilterBar filters={excluded} tagFacets={tagFacets} onChange={() => {}} onCycleTag={() => {}} onClear={() => {}} />,
+      <FilterBar
+        filters={excluded}
+        tagFacets={tagFacets}
+        onChange={() => {}}
+        onCycleTag={() => {}}
+        onClear={() => {}}
+      />
     );
     expect(screen.getByRole("button", { name: /Tag docs.*excluding/ })).toBeInTheDocument();
   });
@@ -82,14 +94,26 @@ describe("FilterBar (#53)", () => {
 
   it("only offers Clear filters when something is active", () => {
     const { unmount } = render(
-      <FilterBar filters={EMPTY_FILTERS} tagFacets={tagFacets} onChange={() => {}} onCycleTag={() => {}} onClear={() => {}} />,
+      <FilterBar
+        filters={EMPTY_FILTERS}
+        tagFacets={tagFacets}
+        onChange={() => {}}
+        onCycleTag={() => {}}
+        onClear={() => {}}
+      />
     );
     expect(screen.queryByRole("button", { name: "Clear filters" })).not.toBeInTheDocument();
     unmount();
 
     const onClear = vi.fn();
     render(
-      <FilterBar filters={{ ...EMPTY_FILTERS, minRating: 2 }} tagFacets={tagFacets} onChange={() => {}} onCycleTag={() => {}} onClear={onClear} />,
+      <FilterBar
+        filters={{ ...EMPTY_FILTERS, minRating: 2 }}
+        tagFacets={tagFacets}
+        onChange={() => {}}
+        onCycleTag={() => {}}
+        onClear={onClear}
+      />
     );
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
     expect(onClear).toHaveBeenCalled();

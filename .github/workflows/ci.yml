@@ -1,37 +1,61 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main]
+    branches:
+      - main
+  # Post-merge signal: merges land via admin bypass, so run the same gates on main itself.
+  push:
+    branches:
+      - main
+  # Version-cut dispatches CI onto the bot-maintained Changesets branch, because
+  # GITHUB_TOKEN-created PR updates do not emit pull_request workflow runs.
+  workflow_dispatch:
+
+# Cancel superseded PR runs. Main-push runs are keyed by SHA rather than ref: a shared ref group
+# would let GitHub replace the single queued run when merges land back-to-back, silently dropping
+# an intermediate commit's verdict. Per-SHA groups never collide.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
-  verify:
-    name: Lint, test, build
+  ci:
+    name: CI
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
         with:
-          node-version: 20
+          # Single source of truth: CI and local resolve Node from the same .nvmrc, so versions
+          # never drift. Bump .nvmrc to move them together.
+          node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      # Fails the build on lint errors (incl. the max-lines "god object" guardrail).
-      - name: Lint
-        run: npm run lint
+      # `npm run ci` is the entire gate (version policy, lint, tests, extension build) and is
+      # runnable locally — CI must not accumulate steps a contributor can't reproduce.
+      - name: Run required validation
+        run: npm run ci
 
-      - name: Test
-        run: npm test
+      # Package on every run so any PR or main commit has an installable build attached, with no
+      # clone-and-build required. Same zip release.yml publishes; this one just isn't tagged.
+      - name: Package extension
+        run: |
+          node scripts/check-version-policy.mjs --built
+          node scripts/package-release.mjs
 
-      - name: Build
-        run: npm run build
+      - name: Upload extension build
+        uses: actions/upload-artifact@v7
+        with:
+          name: bookmarkit-extension
+          path: release/
+          retention-days: 14

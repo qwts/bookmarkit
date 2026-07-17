@@ -25,7 +25,8 @@ function TagChip({ tag, count, state, onClick }) {
     "px-2 py-0.5 text-xs rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-accent";
   const styles = {
     [TAG_STATE.INCLUDE]: "bg-accent text-white border-accent",
-    [TAG_STATE.EXCLUDE]: "bg-secondary-bg text-secondary-text border-border line-through opacity-70",
+    [TAG_STATE.EXCLUDE]:
+      "bg-secondary-bg text-secondary-text border-border line-through opacity-70",
     [TAG_STATE.OFF]: "bg-primary-bg text-primary-text border-border hover:bg-secondary-bg",
   };
   const hint = {
@@ -49,22 +50,34 @@ function TagChip({ tag, count, state, onClick }) {
   );
 }
 
-const FilterBar = React.memo(function FilterBar({ filters, tagFacets, onChange, onCycleTag, onClear }) {
+const FilterBar = React.memo(function FilterBar({
+  filters,
+  tagFacets,
+  onChange,
+  onCycleTag,
+  onClear,
+}) {
   const [showAllTags, setShowAllTags] = useState(false);
 
   const visibleTags = useMemo(
     () => (showAllTags ? tagFacets : tagFacets.slice(0, VISIBLE_TAG_LIMIT)),
-    [tagFacets, showAllTags],
+    [tagFacets, showAllTags]
   );
 
   const active = hasActiveFilters(filters);
   const hiddenCount = tagFacets.length - visibleTags.length;
 
   return (
-    <div className="mb-3 p-2 rounded-lg border border-border bg-primary-bg" role="search" aria-label="Filter bookmarks">
+    <div
+      className="mb-3 p-2 rounded-lg border border-border bg-primary-bg"
+      role="search"
+      aria-label="Filter bookmarks"
+    >
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[10rem]">
-          <label htmlFor="filter-text" className="sr-only">Filter bookmarks by text</label>
+          <label htmlFor="filter-text" className="sr-only">
+            Filter bookmarks by text
+          </label>
           <input
             id="filter-text"
             type="text"
@@ -85,7 +98,9 @@ const FilterBar = React.memo(function FilterBar({ filters, tagFacets, onChange, 
           )}
         </div>
 
-        <label htmlFor="filter-rating" className="sr-only">Minimum rating</label>
+        <label htmlFor="filter-rating" className="sr-only">
+          Minimum rating
+        </label>
         <select
           id="filter-rating"
           value={filters.minRating}
@@ -94,11 +109,15 @@ const FilterBar = React.memo(function FilterBar({ filters, tagFacets, onChange, 
         >
           <option value={0}>Any rating</option>
           {[1, 2, 3, 4, 5].map((n) => (
-            <option key={n} value={n}>{"★".repeat(n)}+</option>
+            <option key={n} value={n}>
+              {"★".repeat(n)}+
+            </option>
           ))}
         </select>
 
-        <label htmlFor="filter-sort" className="sr-only">Sort by</label>
+        <label htmlFor="filter-sort" className="sr-only">
+          Sort by
+        </label>
         <select
           id="filter-sort"
           value={filters.sortBy}
@@ -106,7 +125,9 @@ const FilterBar = React.memo(function FilterBar({ filters, tagFacets, onChange, 
           className={controlClass}
         >
           {SORT_FIELDS.map((f) => (
-            <option key={f.value} value={f.value}>{f.label}</option>
+            <option key={f.value} value={f.value}>
+              {f.label}
+            </option>
           ))}
         </select>
 

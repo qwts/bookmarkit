@@ -3,12 +3,7 @@
 // identical results for equivalent criteria — the agent is a convenience layer over
 // this, not a separate code path.
 
-import {
-  searchBookmarks,
-  findWithTags,
-  filterByRating,
-  sortBookmarks,
-} from "./bookmarkFilters.js";
+import { searchBookmarks, findWithTags, filterByRating, sortBookmarks } from "./bookmarkFilters.js";
 
 export const EMPTY_FILTERS = Object.freeze({
   text: "",
@@ -33,8 +28,10 @@ export function cycleTag(filters, tag) {
   const state = getTagState(filters, tag);
   const include = (filters.includeTags || []).filter((t) => t !== tag);
   const exclude = (filters.excludeTags || []).filter((t) => t !== tag);
-  if (state === TAG_STATE.OFF) return { ...filters, includeTags: [...include, tag], excludeTags: exclude };
-  if (state === TAG_STATE.INCLUDE) return { ...filters, includeTags: include, excludeTags: [...exclude, tag] };
+  if (state === TAG_STATE.OFF)
+    return { ...filters, includeTags: [...include, tag], excludeTags: exclude };
+  if (state === TAG_STATE.INCLUDE)
+    return { ...filters, includeTags: include, excludeTags: [...exclude, tag] };
   return { ...filters, includeTags: include, excludeTags: exclude };
 }
 
@@ -42,10 +39,10 @@ export function hasActiveFilters(filters) {
   if (!filters) return false;
   return Boolean(
     (filters.text || "").trim() ||
-      filters.includeTags?.length ||
-      filters.excludeTags?.length ||
-      filters.minRating > 0 ||
-      filters.sortBy,
+    filters.includeTags?.length ||
+    filters.excludeTags?.length ||
+    filters.minRating > 0 ||
+    filters.sortBy
   );
 }
 

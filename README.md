@@ -26,7 +26,7 @@ The project is built with Vite, styled with Tailwind CSS, and designed for flexi
   - Multi‑select (Cmd/Ctrl+Click), open in new tab (Shift+Click)
   - Detect and remove duplicates (by title + URL)
 - URL status
-  - Lightweight validity check via HEAD request (with a CORS proxy)
+  - Lightweight validity check via HEAD request from the extension service worker
   - One‑click “Ignore checking” toggle per bookmark
 - LLM integration (runtime‑configurable)
   - Gemini, OpenAI (ChatGPT), Grok (x.ai), Ollama (local), LM Studio (local)
@@ -52,90 +52,68 @@ The project is built with Vite, styled with Tailwind CSS, and designed for flexi
 
 ### Prerequisites
 
-- Node.js 18+
-- npm (or pnpm/yarn)
+- Node.js — version pinned in `.nvmrc` (`nvm use`)
+- npm
 - Google Chrome (for the extension)
 - Optional:
   - API keys for LLMs (Gemini/OpenAI/Grok), or
   - Local LLM runtime (Ollama or LM Studio)
 
-### Install
+### Install a release (recommended — no build required)
+
+1. Download `bookmarkit-v<version>.zip` from the **[latest release](https://github.com/qwts/bookmarkit/releases/latest)**.
+2. Optionally verify it against the published checksum:
+   ```bash
+   shasum -a 256 -c bookmarkit-v<version>.zip.sha256
+   ```
+3. Unzip it.
+4. Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**, and select the
+   unzipped folder.
+5. Pin the toolbar icon. Clicking it opens quick-add for the current tab; "Open full app" in the
+   popup opens the full bookmark manager.
+
+Want a build of an unreleased branch? Every CI run attaches the same zip as a `bookmarkit-extension`
+artifact — open the run from the
+[Actions tab](https://github.com/qwts/bookmarkit/actions/workflows/ci.yml) and download it from the
+run summary.
+
+### Build from source
+
+Node is pinned in `.nvmrc` (`nvm use` picks it up).
 
 ```bash
-git clone https://github.com/your-org/bookmarkit.git
+git clone https://github.com/qwts/bookmarkit.git
 cd bookmarkit
 npm install
+npm run build:chrome   # -> dist/, load that folder as unpacked
 ```
 
-### Run as a regular web app (dev)
+> **`npm run dev` is not a dev server.** It runs `vite build --mode development` — a sourcemapped,
+> unminified build into `dist/`. There is no HMR: re-run it after each change and reload the
+> extension from `chrome://extensions`. `npm run preview` serves `dist/` over HTTP, but the default
+> storage backend needs the `chrome.bookmarks` API, so the app only really works when loaded as an
+> extension (or built with `__use_firebase__`).
 
-```bash
-npm run dev
-```
+## Chrome extension
 
-Open the printed localhost URL (typically http://localhost:5173).
+Load either the released zip or your own `dist/` build (see **Install** above) via
+`chrome://extensions` -> Developer mode -> Load unpacked.
 
-You can fully use the app in your browser. Configure AI in the in‑app Options dialog.
+The extension ships two surfaces from one build:
 
-### Build
+| Surface | Entry | What it is |
+|---|---|---|
+| Toolbar popup | `popup.html` | Quick-add for the current tab: prefilled title/URL, tags, rating, folder. Detects an already-saved URL and edits it instead of duplicating. |
+| Full app | `index.html` | The complete manager (search, agent, import/export, options). Opened from the popup's "Open full app". |
 
-```bash
-npm run build
-```
+Permissions requested (`public/manifest.json`):
 
-Prod preview (optional):
-
-```bash
-npm run preview
-```
-
-## Chrome Extension
-
-This project builds a static site you can load as an extension.
-
-1) Build:
-
-```bash
-npm run build
-```
-
-2) Create a minimal manifest.json in the dist folder (if not already present) like:
-
-```json
-{
-  "manifest_version": 3,
-  "name": "bookmarkit",
-  "version": "1.0.0",
-  "description": "AI-assisted bookmarkit.",
-  "action": {
-    "default_title": "bookmarkit",
-    "default_popup": "index.html"
-  },
-  "icons": {
-    "16": "icon-16.png",
-    "32": "icon-32.png",
-    "48": "icon-48.png",
-    "128": "icon-128.png"
-  },
-  "host_permissions": [
-    "https://corsproxy.io/*",
-    "https://www.google.com/*"
-  ],
-  "permissions": []
-}
-```
-
-3) Load in Chrome:
-- Go to chrome://extensions
-- Enable “Developer mode”
-- Click “Load unpacked”
-- Select the dist folder
-
-Open the extension popup or pin it to the toolbar. The app’s UI and features are identical to the web build.
-
-Notes:
-- The app uses corsproxy.io for URL checks and Google S2 favicon service; host_permissions above allow those network requests from an extension page.
-- You can add more host_permissions if you change providers/base URLs (e.g., custom OpenAI base URL, local LM Studio/Ollama).
+- `bookmarks` — the default store keeps title/URL in the real Chrome bookmark tree.
+- `storage` — settings, themes, and the per-bookmark metadata layer.
+- `<all_urls>` — lets the background service worker run URL reachability checks from a privileged
+  context (bypassing page CORS), and lets the popup read the active tab's title/URL. Requests are
+  restricted to public http(s) hosts; private, loopback, and link-local addresses are blocked, and
+  redirects are not followed.
 
 ## Configure AI providers
 
@@ -267,10 +245,13 @@ The agent plans actions (search, filter, sort, limit, persist reorder) and updat
 
 ## URL validation
 
-- The app checks URLs via a HEAD request using https://corsproxy.io
-- If a site is blocked/unreachable, status may show “invalid”
-- You can toggle “Ignore checking” per bookmark
-- Note: Using a third‑party CORS proxy means the checked URL is sent to that proxy
+- The extension checks URLs with a HEAD request issued from the background service worker, which
+  runs in a privileged context and so bypasses page CORS. No third-party proxy is involved — the
+  URL is sent only to the site itself.
+- Only public http(s) hosts are checked. Private, loopback, link-local, and cloud-metadata
+  addresses are refused, and redirects are not followed (both are SSRF guards).
+- If a site is blocked or unreachable, status may show “invalid”.
+- You can toggle “Ignore checking” per bookmark.
 
 ## Privacy and storage
 
@@ -290,13 +271,35 @@ The agent plans actions (search, filter, sort, limit, persist reorder) and updat
   - Load unpacked pointing to the dist folder after a build
   - Check Chrome console for CSP/network issues and adjust host_permissions
 - URL check always invalid:
-  - Some sites block HEAD or CORS proxy; toggle “Ignore checking”
+  - Some sites block HEAD requests; toggle “Ignore checking”
 
 ## Scripts
 
-- npm run dev — start Vite dev server
-- npm run build — production build
-- npm run preview — preview production build
+| Script | What it does |
+|---|---|
+| `npm run dev` | Sourcemapped, unminified build to `dist/`. **Not** a dev server. |
+| `npm run build` | Production build to `dist/`. |
+| `npm run build:chrome` | Production build + copies the extension files into `dist/`. |
+| `npm run preview` | Serves `dist/` over HTTP (see the caveat under Build from source). |
+| `npm run lint` | ESLint. |
+| `npm test` | Vitest suite once (`npm run test:watch` to watch). |
+| `npm run ci` | The full gate CI runs: version policy, lint, tests, extension build. |
+| `npm run changeset` | Record a changeset describing a user-facing change. |
+| `npm run package:release` | Build and package `release/bookmarkit-v<version>.zip` + checksum. |
+
+## Releasing
+
+Releases are automated; nobody tags or uploads by hand.
+
+1. A PR with a user-facing change adds a changeset (`npm run changeset`).
+2. When it merges, **Version cut** opens or refreshes a rolling
+   `chore: version bookmarkit` PR that applies the pending changesets and bumps
+   `package.json`, `public/manifest.json`, and `package-lock.json` together.
+3. Merging *that* PR is the release action: it tags `v<version>` and triggers **Release**, which
+   re-runs the full gate against the tag and publishes the zip + `.sha256` to a GitHub Release.
+
+`npm run check:version-policy` enforces that the three version artifacts never drift apart — a
+manifest that disagrees with `package.json` would ship a build that lies about its own version.
 
 ## Contributing
 

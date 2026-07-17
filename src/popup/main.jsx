@@ -9,5 +9,5 @@ createRoot(document.getElementById("root")).render(
     <ErrorBoundary fallbackMessage="Quick add hit an error. Open the full app to bookmark this page.">
       <QuickAdd />
     </ErrorBoundary>
-  </StrictMode>,
+  </StrictMode>
 );

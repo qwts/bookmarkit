@@ -6,14 +6,19 @@
   "scripts": {
     "dev": "vite build --mode development",
     "build": "vite build",
+    "build:chrome": "vite build && node scripts/build-chrome.js",
+    "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "preview": "vite preview",
-    "build:chrome": "vite build && node scripts/build-chrome.js",
+    "changeset": "changeset",
+    "changeset:version": "changeset version && node scripts/sync-manifest-version.mjs",
+    "check:version-policy": "node scripts/check-version-policy.mjs",
+    "package:release": "npm run build:chrome && node scripts/check-version-policy.mjs --built && node scripts/package-release.mjs",
+    "ci": "npm run check:version-policy && npm run lint && npm run test && npm run build:chrome",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -38,6 +43,7 @@
     }
   },
   "devDependencies": {
+    "@changesets/cli": "^2.31.1",
     "@eslint/js": "^9.33.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
