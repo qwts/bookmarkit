@@ -3,9 +3,9 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("bookmarkit extension installed.");
 });
 
-chrome.action.onClicked.addListener(() => {
-  chrome.tabs.create({ url: chrome.runtime.getURL("index.html") });
-});
+// #51: the toolbar icon now opens the quick-add popup (action.default_popup in the
+// manifest), so chrome.action.onClicked no longer fires and the old open-in-a-tab
+// listener is gone. The popup links out to the full app.
 
 // #10: A host is private/loopback/link-local (or non-public). Mirrors
 // isPrivateOrLoopbackHost in src/utils/url.js (the service worker can't import

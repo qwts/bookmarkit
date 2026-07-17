@@ -4,6 +4,13 @@ import { createLLM, LLM_PROVIDERS } from "../llm/index.js";
 import { parseAgentResponse } from "../llm/parser.js";
 import { classifyLLMError } from "../llm/errors.js";
 import { applyAgentPlan, mergeAgentPlan, sortStepsByPriority } from "../utils/bookmarkFilters.js";
+import {
+  EMPTY_FILTERS,
+  applyManualFilters,
+  cycleTag,
+  deriveTagCounts,
+  hasActiveFilters,
+} from "../utils/manualFilters.js";
 import { filterDuplicateImports, findDuplicateIds } from "../utils/duplicates.js";
 import { isSafeHttpUrl } from "../utils/url.js";
 import { encryptString, decryptString, isEncryptedBlob } from "../utils/keyCrypto.js";
@@ -19,6 +26,7 @@ import ImportExportContent from "./ImportExportContent";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import OptionsModal from "./OptionsModal";
 import BookmarkList from "./BookmarkList.jsx";
+import FilterBar from "./FilterBar.jsx";
 
 const getImportResultMessage = (importedCount, skippedCount, emptyMessage) => {
   if (importedCount > 0) {
@@ -217,6 +225,8 @@ const BookmarkApp = () => {
   const [bookmarksToDelete, setBookmarksToDelete] = useState([]);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
   const [messageModalContent, setMessageModalContent] = useState({ message: "", type: "info" });
+  // #53: manual filter state, independent of the agent plan so neither clobbers the other.
+  const [manualFilters, setManualFilters] = useState(EMPTY_FILTERS);
 
   // UX-05: Undo support — one-level snapshot for remove-duplicates and reorder
   const [undoAction, setUndoAction] = useState(null); // { label, restore: async () => void }
@@ -239,6 +249,13 @@ const BookmarkApp = () => {
 
   // PERF-07: Debounce search for displayedBookmarks (input updates instantly; search updates after 300ms)
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  // #53: debounce only the filter text — chips/selects apply immediately, since they
+  // are discrete choices and waiting on them feels broken.
+  const debouncedFilterText = useDebounce(manualFilters.text, 300);
+  const effectiveFilters = useMemo(
+    () => ({ ...manualFilters, text: debouncedFilterText }),
+    [manualFilters, debouncedFilterText],
+  );
 
   // ─── URL validation ──────────────────────────────────────────────────────────
   // Route through the background service worker so the fetch runs in a privileged
@@ -283,12 +300,20 @@ const BookmarkApp = () => {
   }, [selectedBookmarkId, fetchUrlStatus]); // bookmarksRef + storeRef are refs, no dep needed
 
   // ─── Displayed bookmarks (PERF-08: precise deps, ARCH-10: empty state handled in BookmarkList) ─
-  const displayedBookmarks = useMemo(() => {
-    const processed = applyAgentPlan(lastAction, bookmarks).map((b) =>
-      b.unreachable ? { ...b, urlStatus: "invalid" } : b,
-    );
-    return processed;
-  }, [bookmarks, lastAction]);
+  // #53: the agent plan narrows first, then the manual filters layer on top. Tag facets
+  // come from the planned set (pre-manual) so the chip row doesn't rearrange itself out
+  // from under the pointer as you click chips.
+  const plannedBookmarks = useMemo(() => applyAgentPlan(lastAction, bookmarks), [bookmarks, lastAction]);
+
+  const tagFacets = useMemo(() => deriveTagCounts(plannedBookmarks), [plannedBookmarks]);
+
+  const displayedBookmarks = useMemo(
+    () =>
+      applyManualFilters(effectiveFilters, plannedBookmarks).map((b) =>
+        b.unreachable ? { ...b, urlStatus: "invalid" } : b,
+      ),
+    [plannedBookmarks, effectiveFilters],
+  );
 
   // ─── Message helper ──────────────────────────────────────────────────────────
    
@@ -420,6 +445,16 @@ const BookmarkApp = () => {
     setSelectedBookmarkId(null);
     setBookmarksToDelete([]);
   }, []);
+
+  // #53: filter handlers. "Clear filters" (in the bar) and "Clear Search" (the agent
+  // plan) stay separate so clearing one doesn't silently discard the other; the
+  // empty-state CTA clears both, since that's the "give me everything back" button.
+  const handleCycleTag = useCallback((tag) => setManualFilters((prev) => cycleTag(prev, tag)), []);
+  const clearManualFilters = useCallback(() => setManualFilters(EMPTY_FILTERS), []);
+  const clearAllFilters = useCallback(() => {
+    setManualFilters(EMPTY_FILTERS);
+    resetSearch();
+  }, [resetSearch]);
 
   // ─── Deselect on click-outside ───────────────────────────────────────────────
   // A mousedown on any element that isn't a bookmark card (which stops propagation)
@@ -748,6 +783,15 @@ const BookmarkApp = () => {
 
       <main className={`flex-1 overflow-hidden flex flex-col transition-all duration-300 ${isHeaderVisible ? "pt-28" : "pt-4"}`} role="main">
         <div className="flex-1 min-h-0 max-w-4xl w-full mx-auto px-4 flex flex-col">
+          {/* #53: deterministic filter controls — work with no LLM configured */}
+          <FilterBar
+            filters={manualFilters}
+            tagFacets={tagFacets}
+            onChange={setManualFilters}
+            onCycleTag={handleCycleTag}
+            onClear={clearManualFilters}
+          />
+
           {/* Agent plan display */}
           {lastAction && (
             <div className={`mb-4 p-3 rounded-lg ${lastAction.action === "error" ? "bg-red-50 border border-red-200" : "bg-green-50 border border-green-200"}`} role="status">
@@ -774,11 +818,17 @@ const BookmarkApp = () => {
           )}
 
           <div className="text-right text-sm text-secondary-text mb-4">
-            {multiSelectedBookmarkIds.length > 0
-              ? `${multiSelectedBookmarkIds.length} selected | ${displayedBookmarks.length} total`
-              : selectedBookmarkId
-                ? `1 selected | ${displayedBookmarks.length} total`
-                : `${displayedBookmarks.length} total bookmarks`}
+            {(() => {
+              // Say "12 of 340" whenever the view is narrowed, so a filtered count is
+              // never mistaken for the size of the whole collection.
+              const shown =
+                displayedBookmarks.length === bookmarks.length
+                  ? `${bookmarks.length} bookmarks`
+                  : `${displayedBookmarks.length} of ${bookmarks.length} bookmarks`;
+              if (multiSelectedBookmarkIds.length > 0) return `${multiSelectedBookmarkIds.length} selected | ${shown}`;
+              if (selectedBookmarkId) return `1 selected | ${shown}`;
+              return shown;
+            })()}
           </div>
 
           {/* ARCH-10: Empty state + PERF-06: virtualized list — flex-1 fills remaining viewport height */}
@@ -793,10 +843,10 @@ const BookmarkApp = () => {
             onBookmarkKeyDown={handleBookmarkKeyDown}
             isLoading={isLoading}
             bookmarksTotal={bookmarks.length}
-            searchActive={!!debouncedSearchQuery}
+            searchActive={!!debouncedSearchQuery || hasActiveFilters(effectiveFilters)}
             lastAction={lastAction}
-            searchQuery={debouncedSearchQuery}
-            onClearSearch={resetSearch}
+            searchQuery={debouncedSearchQuery || debouncedFilterText}
+            onClearSearch={clearAllFilters}
             onAddNew={handleAddNewBookmark}
             onImport={handleImportExportOpen}
           />
