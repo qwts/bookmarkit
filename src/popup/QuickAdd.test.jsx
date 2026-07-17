@@ -35,7 +35,9 @@ function mockChrome(tab) {
       create: vi.fn(),
     },
     runtime: { getURL: (p) => `chrome-extension://abc/${p}` },
-    storage: { local: { get: vi.fn().mockResolvedValue({}), set: vi.fn().mockResolvedValue(undefined) } },
+    storage: {
+      local: { get: vi.fn().mockResolvedValue({}), set: vi.fn().mockResolvedValue(undefined) },
+    },
   };
 }
 
@@ -52,7 +54,11 @@ afterEach(() => {
 
 describe("QuickAdd popup (#51)", () => {
   it("prefills from the active tab", async () => {
-    mockChrome({ title: "Example Page", url: "https://example.com/page", favIconUrl: "https://example.com/f.ico" });
+    mockChrome({
+      title: "Example Page",
+      url: "https://example.com/page",
+      favIconUrl: "https://example.com/f.ico",
+    });
     render(<QuickAdd />);
     await waitFor(() => expect(screen.getByLabelText("Title")).toHaveValue("Example Page"));
     expect(screen.getByLabelText("URL")).toHaveValue("https://example.com/page");
@@ -60,11 +66,17 @@ describe("QuickAdd popup (#51)", () => {
   });
 
   it("saves a new bookmark with tags, rating, folder and the tab's own favicon", async () => {
-    mockChrome({ title: "Example Page", url: "https://example.com/page", favIconUrl: "https://example.com/f.ico" });
+    mockChrome({
+      title: "Example Page",
+      url: "https://example.com/page",
+      favIconUrl: "https://example.com/f.ico",
+    });
     render(<QuickAdd />);
     await waitFor(() => expect(screen.getByLabelText("Title")).toHaveValue("Example Page"));
 
-    fireEvent.change(screen.getByLabelText("Tags, comma separated"), { target: { value: "a, b ,, c" } });
+    fireEvent.change(screen.getByLabelText("Tags, comma separated"), {
+      target: { value: "a, b ,, c" },
+    });
     fireEvent.change(screen.getByLabelText("Folder"), { target: { value: "Work/API" } });
     fireEvent.click(screen.getByRole("button", { name: /^3 stars/ }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
@@ -109,9 +121,7 @@ describe("QuickAdd popup (#51)", () => {
   it("refuses to bookmark a non-http page", async () => {
     mockChrome({ title: "Settings", url: "chrome://settings" });
     render(<QuickAdd />);
-    await waitFor(() =>
-      expect(screen.getByText(/can't be bookmarked/i)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText(/can't be bookmarked/i)).toBeInTheDocument());
     expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
   });
 

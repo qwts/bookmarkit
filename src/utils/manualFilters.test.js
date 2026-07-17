@@ -10,9 +10,30 @@ import {
 } from "./manualFilters.js";
 
 const list = [
-  { id: "1", title: "React docs", url: "http://react.dev", description: "", tags: ["react", "docs"], rating: 5 },
-  { id: "2", title: "Vue docs", url: "http://vuejs.org", description: "", tags: ["vue", "docs"], rating: 3 },
-  { id: "3", title: "Random blog", url: "http://blog.com", description: "about react", tags: [], rating: 0 },
+  {
+    id: "1",
+    title: "React docs",
+    url: "http://react.dev",
+    description: "",
+    tags: ["react", "docs"],
+    rating: 5,
+  },
+  {
+    id: "2",
+    title: "Vue docs",
+    url: "http://vuejs.org",
+    description: "",
+    tags: ["vue", "docs"],
+    rating: 3,
+  },
+  {
+    id: "3",
+    title: "Random blog",
+    url: "http://blog.com",
+    description: "about react",
+    tags: [],
+    rating: 0,
+  },
 ];
 
 describe("deriveTagCounts", () => {
@@ -100,30 +121,48 @@ describe("applyManualFilters", () => {
   });
 
   it("includes and excludes tags", () => {
-    expect(applyManualFilters({ ...EMPTY_FILTERS, includeTags: ["docs"] }, list).map((b) => b.id))
-      .toEqual(["1", "2"]);
     expect(
-      applyManualFilters({ ...EMPTY_FILTERS, includeTags: ["docs"], excludeTags: ["vue"] }, list)
-        .map((b) => b.id),
+      applyManualFilters({ ...EMPTY_FILTERS, includeTags: ["docs"] }, list).map((b) => b.id)
+    ).toEqual(["1", "2"]);
+    expect(
+      applyManualFilters(
+        { ...EMPTY_FILTERS, includeTags: ["docs"], excludeTags: ["vue"] },
+        list
+      ).map((b) => b.id)
     ).toEqual(["1"]);
   });
 
   it("filters by minimum rating inclusively", () => {
-    expect(applyManualFilters({ ...EMPTY_FILTERS, minRating: 3 }, list).map((b) => b.id))
-      .toEqual(["1", "2"]);
+    expect(applyManualFilters({ ...EMPTY_FILTERS, minRating: 3 }, list).map((b) => b.id)).toEqual([
+      "1",
+      "2",
+    ]);
   });
 
   it("sorts by field and direction", () => {
-    expect(applyManualFilters({ ...EMPTY_FILTERS, sortBy: "title", order: "asc" }, list).map((b) => b.title))
-      .toEqual(["Random blog", "React docs", "Vue docs"]);
-    expect(applyManualFilters({ ...EMPTY_FILTERS, sortBy: "rating", order: "desc" }, list).map((b) => b.id))
-      .toEqual(["1", "2", "3"]);
+    expect(
+      applyManualFilters({ ...EMPTY_FILTERS, sortBy: "title", order: "asc" }, list).map(
+        (b) => b.title
+      )
+    ).toEqual(["Random blog", "React docs", "Vue docs"]);
+    expect(
+      applyManualFilters({ ...EMPTY_FILTERS, sortBy: "rating", order: "desc" }, list).map(
+        (b) => b.id
+      )
+    ).toEqual(["1", "2", "3"]);
   });
 
   it("composes text + tags + rating + sort together", () => {
     const out = applyManualFilters(
-      { ...EMPTY_FILTERS, text: "docs", includeTags: ["docs"], minRating: 3, sortBy: "rating", order: "asc" },
-      list,
+      {
+        ...EMPTY_FILTERS,
+        text: "docs",
+        includeTags: ["docs"],
+        minRating: 3,
+        sortBy: "rating",
+        order: "asc",
+      },
+      list
     );
     expect(out.map((b) => b.id)).toEqual(["2", "1"]);
   });
