@@ -1,0 +1,5 @@
+# Revisions to ignore in git blame. One SHA per line, with a comment above each.
+# Format: 40-char hex SHA, whitespace, optional comment.
+
+# Repo-wide Prettier pass (43 files, whitespace/line-wrap only)
+915f8905bdc98a8c75c16eab689af9c9e3fb955c
