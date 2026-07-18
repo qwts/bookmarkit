@@ -62,7 +62,7 @@ export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken })
             try {
               if (initialAuthToken) await signInWithCustomToken(auth, initialAuthToken);
               else await signInAnonymously(auth);
-            } catch (e) {
+            } catch {
               // retry or resolve anyway
               resolve();
             }
