@@ -5,7 +5,7 @@
 The `firebaseStore.js` queries Firestore with two `orderBy` clauses:
 
 ```js
-orderBy('position', 'asc'), orderBy('title', 'asc')
+(orderBy("position", "asc"), orderBy("title", "asc"));
 ```
 
 Firestore requires a **composite index** for multi-field ordering. Without it,
@@ -45,6 +45,7 @@ Alternatively, deploy via the Firebase CLI using `firestore.indexes.json`:
 so the app loads instantly on repeat visits without a network round-trip.
 
 **Known limitations:**
+
 - Offline persistence only works in one browser tab at a time. If multiple tabs
   are open, only the first will have persistence enabled (others log a warning).
 - Some older browsers do not support IndexedDB and will silently fall back to

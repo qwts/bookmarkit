@@ -119,12 +119,7 @@ const OptionsModal = ({
               className="text-secondary-text hover:text-primary-text"
               aria-label="Close options"
             >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -194,20 +189,17 @@ const OptionsModal = ({
                     id="api-key"
                     type="password"
                     className="w-full border rounded-md px-3 py-2 themed-input disabled:opacity-50"
-                    placeholder={encryption.locked ? "Locked — unlock below to edit" : "Enter API key"}
+                    placeholder={
+                      encryption.locked ? "Locked — unlock below to edit" : "Enter API key"
+                    }
                     value={providerOptions.apiKey || ""}
                     disabled={encryption.locked}
-                    onChange={(e) =>
-                      onChangeOptions?.({ apiKey: e.target.value })
-                    }
+                    onChange={(e) => onChangeOptions?.({ apiKey: e.target.value })}
                   />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label
-                      htmlFor="model"
-                      className="block text-sm font-medium text-primary-text"
-                    >
+                    <label htmlFor="model" className="block text-sm font-medium text-primary-text">
                       Model
                     </label>
                     <button
@@ -225,9 +217,7 @@ const OptionsModal = ({
                       id="model"
                       className="w-full border rounded-md px-3 py-2 themed-input"
                       value={providerOptions.model || models[0] || ""}
-                      onChange={(e) =>
-                        onChangeOptions?.({ model: e.target.value })
-                      }
+                      onChange={(e) => onChangeOptions?.({ model: e.target.value })}
                     >
                       {models.map((m) => (
                         <option key={m} value={m}>
@@ -248,17 +238,12 @@ const OptionsModal = ({
                             : "grok-beta"
                       }
                       value={providerOptions.model || ""}
-                      onChange={(e) =>
-                        onChangeOptions?.({ model: e.target.value })
-                      }
+                      onChange={(e) => onChangeOptions?.({ model: e.target.value })}
                     />
                   )}
-                  {modelsError && (
-                    <p className="text-xs text-red-600 mt-1">{modelsError}</p>
-                  )}
+                  {modelsError && <p className="text-xs text-red-600 mt-1">{modelsError}</p>}
                 </div>
-                {(provider === LLM_PROVIDERS.OPENAI ||
-                  provider === LLM_PROVIDERS.GROK) && (
+                {(provider === LLM_PROVIDERS.OPENAI || provider === LLM_PROVIDERS.GROK) && (
                   <div>
                     <label
                       htmlFor="base-url"
@@ -276,19 +261,18 @@ const OptionsModal = ({
                           : "https://api.x.ai/v1"
                       }
                       value={providerOptions.baseUrl || ""}
-                      onChange={(e) =>
-                        onChangeOptions?.({ baseUrl: e.target.value })
-                      }
+                      onChange={(e) => onChangeOptions?.({ baseUrl: e.target.value })}
                     />
                     {baseUrlError && (
-                      <p className="mt-1 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">{baseUrlError}</p>
+                      <p className="mt-1 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">
+                        {baseUrlError}
+                      </p>
                     )}
                   </div>
                 )}
               </div>
             )}
-            {(provider === LLM_PROVIDERS.OLLAMA ||
-              provider === LLM_PROVIDERS.LMSTUDIO) && (
+            {(provider === LLM_PROVIDERS.OLLAMA || provider === LLM_PROVIDERS.LMSTUDIO) && (
               <div className="space-y-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -313,9 +297,7 @@ const OptionsModal = ({
                       id="ollama-model"
                       className="w-full border rounded-md px-3 py-2 themed-input"
                       value={providerOptions.model || models[0] || ""}
-                      onChange={(e) =>
-                        onChangeOptions?.({ model: e.target.value })
-                      }
+                      onChange={(e) => onChangeOptions?.({ model: e.target.value })}
                     >
                       {models.map((m) => (
                         <option key={m} value={m}>
@@ -334,14 +316,10 @@ const OptionsModal = ({
                           : "lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF"
                       }
                       value={providerOptions.model || ""}
-                      onChange={(e) =>
-                        onChangeOptions?.({ model: e.target.value })
-                      }
+                      onChange={(e) => onChangeOptions?.({ model: e.target.value })}
                     />
                   )}
-                  {modelsError && (
-                    <p className="text-xs text-red-600 mt-1">{modelsError}</p>
-                  )}
+                  {modelsError && <p className="text-xs text-red-600 mt-1">{modelsError}</p>}
                 </div>
                 <div>
                   <label
@@ -360,12 +338,12 @@ const OptionsModal = ({
                         : "http://localhost:1234"
                     }
                     value={providerOptions.baseUrl || ""}
-                    onChange={(e) =>
-                      onChangeOptions?.({ baseUrl: e.target.value })
-                    }
+                    onChange={(e) => onChangeOptions?.({ baseUrl: e.target.value })}
                   />
                   {baseUrlError && (
-                    <p className="mt-1 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">{baseUrlError}</p>
+                    <p className="mt-1 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">
+                      {baseUrlError}
+                    </p>
                   )}
                 </div>
               </div>
@@ -373,8 +351,9 @@ const OptionsModal = ({
             {/* Temperature */}
             {(() => {
               const supportsTemp = modelSupportsTemperature(provider, providerOptions.model);
-              const isEnabled = supportsTemp && !!(providerOptions.enableTemperature);
-              const tempValue = typeof providerOptions.temperature === "number" ? providerOptions.temperature : 1;
+              const isEnabled = supportsTemp && !!providerOptions.enableTemperature;
+              const tempValue =
+                typeof providerOptions.temperature === "number" ? providerOptions.temperature : 1;
               return (
                 <div>
                   <div className="flex items-center gap-2">
@@ -393,10 +372,14 @@ const OptionsModal = ({
                       Temperature
                     </label>
                     {!supportsTemp && (
-                      <span className="text-xs text-secondary-text">(not supported by this model)</span>
+                      <span className="text-xs text-secondary-text">
+                        (not supported by this model)
+                      </span>
                     )}
                     {isEnabled && (
-                      <span className="ml-auto text-sm tabular-nums text-primary-text">{tempValue.toFixed(1)}</span>
+                      <span className="ml-auto text-sm tabular-nums text-primary-text">
+                        {tempValue.toFixed(1)}
+                      </span>
                     )}
                   </div>
                   {isEnabled && (
@@ -408,7 +391,9 @@ const OptionsModal = ({
                         max="2"
                         step="0.1"
                         value={tempValue}
-                        onChange={(e) => onChangeOptions?.({ temperature: parseFloat(e.target.value) })}
+                        onChange={(e) =>
+                          onChangeOptions?.({ temperature: parseFloat(e.target.value) })
+                        }
                         className="flex-1 accent-accent"
                         aria-label="Temperature value"
                       />
@@ -438,15 +423,11 @@ const OptionsModal = ({
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-secondary-text mt-1">
-                Select a theme to apply.
-              </p>
+              <p className="text-xs text-secondary-text mt-1">Select a theme to apply.</p>
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-primary-text">
-                  Upload Theme
-                </label>
+                <label className="block text-sm font-medium text-primary-text">Upload Theme</label>
                 <button
                   type="button"
                   onClick={() => setShowExample(true)}
@@ -476,9 +457,7 @@ const OptionsModal = ({
                 onChange={(e) => onThemeUpload?.(e.target.files[0])}
                 className="block w-full text-sm text-secondary-text file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-secondary-bg file:text-accent hover:file:bg-primary-bg focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               />
-              <p className="text-xs text-secondary-text mt-1">
-                Upload a JSON or YAML theme file.
-              </p>
+              <p className="text-xs text-secondary-text mt-1">Upload a JSON or YAML theme file.</p>
             </div>
           </div>
           <div className="flex justify-end mt-6">
@@ -503,20 +482,13 @@ const OptionsModal = ({
           <div className="bg-primary-bg rounded-lg shadow-xl max-w-lg w-full m-4">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-semibold text-primary-text">
-                  Theme File Format
-                </h3>
+                <h3 className="text-lg font-semibold text-primary-text">Theme File Format</h3>
                 <button
                   onClick={() => setShowExample(false)}
                   className="text-secondary-text hover:text-primary-text"
                   aria-label="Close example"
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -541,8 +513,7 @@ const OptionsModal = ({
 }`}
               </pre>
               <p className="mt-4 text-sm text-secondary-text">
-                All properties are required. Colors should be in hex format
-                (#rrggbb).
+                All properties are required. Colors should be in hex format (#rrggbb).
               </p>
               <div className="flex justify-end mt-6">
                 <button

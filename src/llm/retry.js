@@ -32,21 +32,21 @@ export async function fetchWithRetry(url, options = {}, retryConfig = {}, caller
 
     // Bail immediately if the caller already aborted
     if (callerSignal?.aborted) {
-      throw new DOMException('Request cancelled', 'AbortError');
+      throw new DOMException("Request cancelled", "AbortError");
     }
 
     // Compose a per-attempt timeout controller with the optional caller signal
     const timeoutController = new AbortController();
     const timeoutId = setTimeout(
-      () => timeoutController.abort(new DOMException('Request timed out', 'TimeoutError')),
-      timeoutMs,
+      () => timeoutController.abort(new DOMException("Request timed out", "TimeoutError")),
+      timeoutMs
     );
 
     // Forward caller abort into the timeout controller so either cancels the fetch
     let callerHandler;
     if (callerSignal) {
       callerHandler = () => timeoutController.abort(callerSignal.reason);
-      callerSignal.addEventListener('abort', callerHandler, { once: true });
+      callerSignal.addEventListener("abort", callerHandler, { once: true });
     }
 
     let res;
@@ -55,7 +55,7 @@ export async function fetchWithRetry(url, options = {}, retryConfig = {}, caller
     } catch (err) {
       lastError = err;
       // AbortError means timeout or caller cancel — do not retry
-      if (err.name === 'AbortError') throw err;
+      if (err.name === "AbortError") throw err;
       // Network error — retry if attempts remain
       if (attempt < maxAttempts) {
         await _delay(_jitteredBackoff(baseDelayMs, attempt));
@@ -64,7 +64,7 @@ export async function fetchWithRetry(url, options = {}, retryConfig = {}, caller
       throw err;
     } finally {
       clearTimeout(timeoutId);
-      if (callerHandler) callerSignal.removeEventListener('abort', callerHandler);
+      if (callerHandler) callerSignal.removeEventListener("abort", callerHandler);
     }
 
     // Non-retriable HTTP errors: auth failures and bad requests
@@ -72,10 +72,9 @@ export async function fetchWithRetry(url, options = {}, retryConfig = {}, caller
 
     // Retriable status codes
     if (retryOn.includes(res.status) && attempt < maxAttempts) {
-      const retryAfterSec = parseFloat(res.headers?.get?.('Retry-After') || '0');
-      const waitMs = retryAfterSec > 0
-        ? retryAfterSec * 1000
-        : _jitteredBackoff(baseDelayMs, attempt);
+      const retryAfterSec = parseFloat(res.headers?.get?.("Retry-After") || "0");
+      const waitMs =
+        retryAfterSec > 0 ? retryAfterSec * 1000 : _jitteredBackoff(baseDelayMs, attempt);
       lastError = new Error(`HTTP ${res.status}`);
       await _delay(waitMs);
       continue;
@@ -85,7 +84,7 @@ export async function fetchWithRetry(url, options = {}, retryConfig = {}, caller
     return res;
   }
 
-  throw lastError || new Error('fetchWithRetry: all attempts exhausted');
+  throw lastError || new Error("fetchWithRetry: all attempts exhausted");
 }
 
 function _jitteredBackoff(baseMs, attempt) {

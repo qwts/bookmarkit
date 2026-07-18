@@ -33,9 +33,9 @@ The app ships as both a **Vite/React web app** and a **Chrome MV3 extension**. T
 
 Vite builds **two** HTML entries (`rollupOptions.input` in `vite.config.js`):
 
-| Entry | Source | Becomes |
-|---|---|---|
-| `index.html` | `src/main.jsx` → `BookmarkApp` | The full app (opened in a tab) |
+| Entry        | Source                            | Becomes                                              |
+| ------------ | --------------------------------- | ---------------------------------------------------- |
+| `index.html` | `src/main.jsx` → `BookmarkApp`    | The full app (opened in a tab)                       |
 | `popup.html` | `src/popup/main.jsx` → `QuickAdd` | The extension toolbar popup (`action.default_popup`) |
 
 `popup.html` lives at the repo root (not `public/`) because it's a real Vite entry — `build-chrome.js`
@@ -68,11 +68,11 @@ Manual sort runs last, so it wins over an agent sort. The two clear independentl
 
 Three implementations share a common interface:
 
-| Store | File | When used |
-|---|---|---|
-| `LOCAL` (default) | `localCompositeStore.js` | Chrome Bookmarks API for title/URL + `localStorage` (prefix `bm_meta:<id>`) for metadata (tags, rating, description, etc.) |
-| `CHROME` | `chromeBookmarksStore.js` | Raw Chrome Bookmarks API only — no metadata persistence |
-| `FIREBASE` | `firebaseStore.js` | Firestore under `artifacts/<appId>/users/<uid>/bookmarks` |
+| Store             | File                      | When used                                                                                                                  |
+| ----------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `LOCAL` (default) | `localCompositeStore.js`  | Chrome Bookmarks API for title/URL + `localStorage` (prefix `bm_meta:<id>`) for metadata (tags, rating, description, etc.) |
+| `CHROME`          | `chromeBookmarksStore.js` | Raw Chrome Bookmarks API only — no metadata persistence                                                                    |
+| `FIREBASE`        | `firebaseStore.js`        | Firestore under `artifacts/<appId>/users/<uid>/bookmarks`                                                                  |
 
 Selected at startup in `BookmarkApp.jsx` based on the `__use_firebase__` build-time global. Factory is in `src/stores/index.js`.
 
@@ -104,10 +104,10 @@ Runtime overrides (set via the in-app Options dialog) are stored in `localStorag
 
 ### Key localStorage / chrome.storage keys
 
-| Key | Purpose |
-|---|---|
-| `bm_runtime_llm_provider` | Selected LLM provider |
-| `bm_runtime_llm_options` | Per-provider options (API keys, base URLs, models) |
-| `bm_current_theme` | Active theme name |
-| `bm_themes` | JSON of custom uploaded themes |
-| `bm_meta:<id>` | Per-bookmark metadata (localCompositeStore) |
+| Key                       | Purpose                                            |
+| ------------------------- | -------------------------------------------------- |
+| `bm_runtime_llm_provider` | Selected LLM provider                              |
+| `bm_runtime_llm_options`  | Per-provider options (API keys, base URLs, models) |
+| `bm_current_theme`        | Active theme name                                  |
+| `bm_themes`               | JSON of custom uploaded themes                     |
+| `bm_meta:<id>`            | Per-bookmark metadata (localCompositeStore)        |

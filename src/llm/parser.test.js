@@ -50,7 +50,8 @@ describe("parseAgentResponse", () => {
   });
 
   it("extracts a fenced block even with surrounding prose", () => {
-    const text = 'Sure! Here is the plan:\n```json\n[{"action":"showAllBookmarks"}]\n```\nHope that helps.';
+    const text =
+      'Sure! Here is the plan:\n```json\n[{"action":"showAllBookmarks"}]\n```\nHope that helps.';
     expect(parseAgentResponse(text)).toEqual([{ action: "showAllBookmarks", parameters: {} }]);
   });
 

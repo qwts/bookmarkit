@@ -66,7 +66,11 @@ export async function encryptString(plaintext, passphrase) {
 // tampered data (AES-GCM authentication failure).
 export async function decryptString(blob, passphrase) {
   const parsed = typeof blob === "string" ? JSON.parse(blob) : blob;
-  const key = await deriveKey(passphrase, base64ToBytes(parsed.salt), parsed.iterations || PBKDF2_ITERATIONS);
+  const key = await deriveKey(
+    passphrase,
+    base64ToBytes(parsed.salt),
+    parsed.iterations || PBKDF2_ITERATIONS
+  );
   const plaintext = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: base64ToBytes(parsed.iv) },
     key,
@@ -80,7 +84,9 @@ export function isEncryptedBlob(value) {
   if (typeof value !== "string") return false;
   try {
     const p = JSON.parse(value);
-    return p && typeof p === "object" && p.v === BLOB_VERSION && !!p.ciphertext && !!p.salt && !!p.iv;
+    return (
+      p && typeof p === "object" && p.v === BLOB_VERSION && !!p.ciphertext && !!p.salt && !!p.iv
+    );
   } catch {
     return false;
   }

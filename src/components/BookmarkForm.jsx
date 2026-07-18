@@ -36,9 +36,7 @@ const BookmarkForm = ({
     }
   };
 
-  const [ignoreUrlValidation, setIgnoreUrlValidation] = useState(
-    bookmark?.urlStatus === "ignored",
-  );
+  const [ignoreUrlValidation, setIgnoreUrlValidation] = useState(bookmark?.urlStatus === "ignored");
   // UX-02: Split into 4 distinct states so spinner only shows during active validation
   const [currentUrlValidity, setCurrentUrlValidity] = useState("idle"); // 'idle', 'checking', 'valid', 'invalid'
 
@@ -63,10 +61,13 @@ const BookmarkForm = ({
     if (msg) tagsErrorTimer.current = setTimeout(() => setTagsError(""), 5000);
   };
 
-  useEffect(() => () => {
-    if (descErrorTimer.current) clearTimeout(descErrorTimer.current);
-    if (tagsErrorTimer.current) clearTimeout(tagsErrorTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (descErrorTimer.current) clearTimeout(descErrorTimer.current);
+      if (tagsErrorTimer.current) clearTimeout(tagsErrorTimer.current);
+    },
+    []
+  );
 
   // Create LLM from runtime provider/options passed down from BookmarkApp.
   // Falls back to build-time globals so the form works even if props aren't supplied.
@@ -75,11 +76,12 @@ const BookmarkForm = ({
       provider ||
       (typeof __llm_provider__ !== "undefined" && __llm_provider__) ||
       LLM_PROVIDERS.GEMINI;
-    const globalOpts =
-      (typeof __llm_options__ !== "undefined" && __llm_options__) || {};
+    const globalOpts = (typeof __llm_options__ !== "undefined" && __llm_options__) || {};
     const merged = { ...globalOpts, ...(providerOptions || {}) };
     // Strip empty strings so provider defaults (e.g. baseUrl) are used when unset
-    const opts = Object.fromEntries(Object.entries(merged).filter(([, v]) => v !== "" && v != null));
+    const opts = Object.fromEntries(
+      Object.entries(merged).filter(([, v]) => v !== "" && v != null)
+    );
     return createLLM(resolvedProvider, opts);
   }, [provider, providerOptions]);
 
@@ -103,7 +105,7 @@ const BookmarkForm = ({
       .filter(Boolean);
     const seen = new Set();
     const unique = parts.filter((tag) =>
-      seen.has(tag.toLowerCase()) ? false : (seen.add(tag.toLowerCase()), true),
+      seen.has(tag.toLowerCase()) ? false : (seen.add(tag.toLowerCase()), true)
     );
     return unique.join(", ");
   };
@@ -111,18 +113,24 @@ const BookmarkForm = ({
   useEffect(() => {
     let isMounted = true;
     if (ignoreUrlValidation)
-      return () => { isMounted = false; };
+      return () => {
+        isMounted = false;
+      };
 
     // UX-02: Set 'idle' when URL is empty, 'checking' only during active validation
     if (!formData.url) {
       setCurrentUrlValidity("idle");
-      return () => { isMounted = false; };
+      return () => {
+        isMounted = false;
+      };
     }
 
     setCurrentUrlValidity("checking");
 
     if (!fetchUrlStatus)
-      return () => { isMounted = false; };
+      return () => {
+        isMounted = false;
+      };
 
     const url = formData.url;
     const timer = setTimeout(async () => {
@@ -264,305 +272,300 @@ const BookmarkForm = ({
       aria-modal="true"
     >
       <div className="bg-primary-bg rounded-lg shadow-xl max-w-md w-full m-4 max-h-[90vh] overflow-y-auto">
-    <form onSubmit={handleSubmit} className="p-6">
-      {/* A11Y-04: Visually-hidden live regions for screen reader announcements */}
-      <span ref={descLiveRef} aria-live="polite" className="sr-only" />
-      <span ref={tagsLiveRef} aria-live="polite" className="sr-only" />
+        <form onSubmit={handleSubmit} className="p-6">
+          {/* A11Y-04: Visually-hidden live regions for screen reader announcements */}
+          <span ref={descLiveRef} aria-live="polite" className="sr-only" />
+          <span ref={tagsLiveRef} aria-live="polite" className="sr-only" />
 
-      <h2 className="text-2xl font-semibold mb-6 text-primary-text">
-        {bookmark ? "Edit Bookmark" : "Add New Bookmark"}
-      </h2>
-      <div className="grid grid-cols-1 gap-4 mb-6">
-        <div>
-          <label
-            htmlFor="title"
-            className="block text-sm font-medium text-primary-text mb-1"
-          >
-            Title
-          </label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            value={formData.title}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent themed-input"
-            required
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="url"
-            className="block text-sm font-medium text-primary-text mb-1"
-          >
-            URL
-          </label>
-          <div className="relative">
-            <input
-              type="url"
-              id="url"
-              name="url"
-              value={formData.url}
-              onChange={handleChange}
-              aria-invalid={currentUrlValidity === "invalid" && !ignoreUrlValidation}
-              aria-describedby="url-validation-msg"
-              className={`w-full pl-3 pr-10 py-2 border rounded-md focus:ring-accent focus:border-accent themed-input ${
-                currentUrlValidity === "invalid" && !ignoreUrlValidation
-                  ? "border-yellow-400"
-                  : currentUrlValidity === "valid" || ignoreUrlValidation
-                    ? "border-green-500"
-                    : "border-border"
-              }`}
-              required
-            />
-            {/* Spinner while checking */}
-            {currentUrlValidity === "checking" && formData.url && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent" />
+          <h2 className="text-2xl font-semibold mb-6 text-primary-text">
+            {bookmark ? "Edit Bookmark" : "Add New Bookmark"}
+          </h2>
+          <div className="grid grid-cols-1 gap-4 mb-6">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-primary-text mb-1">
+                Title
+              </label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent themed-input"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="url" className="block text-sm font-medium text-primary-text mb-1">
+                URL
+              </label>
+              <div className="relative">
+                <input
+                  type="url"
+                  id="url"
+                  name="url"
+                  value={formData.url}
+                  onChange={handleChange}
+                  aria-invalid={currentUrlValidity === "invalid" && !ignoreUrlValidation}
+                  aria-describedby="url-validation-msg"
+                  className={`w-full pl-3 pr-10 py-2 border rounded-md focus:ring-accent focus:border-accent themed-input ${
+                    currentUrlValidity === "invalid" && !ignoreUrlValidation
+                      ? "border-yellow-400"
+                      : currentUrlValidity === "valid" || ignoreUrlValidation
+                        ? "border-green-500"
+                        : "border-border"
+                  }`}
+                  required
+                />
+                {/* Spinner while checking */}
+                {currentUrlValidity === "checking" && formData.url && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-accent" />
+                  </div>
+                )}
+                {/* Green checkmark when valid */}
+                {currentUrlValidity === "valid" && !ignoreUrlValidation && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">✓</div>
+                )}
+                {/* "Ignore" button when invalid */}
+                {currentUrlValidity === "invalid" && !ignoreUrlValidation && (
+                  <button
+                    type="button"
+                    onClick={() => setIgnoreUrlValidation(true)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-green-600 hover:text-green-700 focus:outline-none"
+                    aria-label="Ignore URL validation error"
+                  >
+                    Ignore
+                  </button>
+                )}
               </div>
-            )}
-            {/* Green checkmark when valid */}
-            {currentUrlValidity === "valid" && !ignoreUrlValidation && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">✓</div>
-            )}
-            {/* "Ignore" button when invalid */}
-            {currentUrlValidity === "invalid" && !ignoreUrlValidation && (
-              <button
-                type="button"
-                onClick={() => setIgnoreUrlValidation(true)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-green-600 hover:text-green-700 focus:outline-none"
-                aria-label="Ignore URL validation error"
-              >
-                Ignore
-              </button>
-            )}
-          </div>
-          <span id="url-validation-msg" role="alert" className="sr-only">
-            {currentUrlValidity === "invalid" && !ignoreUrlValidation ? "URL not found." : ""}
-          </span>
-          {/* Yellow "Not Found" when invalid */}
-          {currentUrlValidity === "invalid" && !ignoreUrlValidation && (
-            <p className="mt-1 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">Not Found</p>
-          )}
-          {/* Green "Ignored" with × to undo when ignored */}
-          {ignoreUrlValidation && (
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1">Ignored</span>
-              <button
-                type="button"
-                onClick={() => setIgnoreUrlValidation(false)}
-                className="text-green-600 hover:text-green-800 focus:outline-none"
-                aria-label="Remove ignored status"
-              >
-                ×
-              </button>
+              <span id="url-validation-msg" role="alert" className="sr-only">
+                {currentUrlValidity === "invalid" && !ignoreUrlValidation ? "URL not found." : ""}
+              </span>
+              {/* Yellow "Not Found" when invalid */}
+              {currentUrlValidity === "invalid" && !ignoreUrlValidation && (
+                <p className="mt-1 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">
+                  Not Found
+                </p>
+              )}
+              {/* Green "Ignored" with × to undo when ignored */}
+              {ignoreUrlValidation && (
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="text-sm text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1">
+                    Ignored
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIgnoreUrlValidation(false)}
+                    className="text-green-600 hover:text-green-800 focus:outline-none"
+                    aria-label="Remove ignored status"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-        <div>
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-primary-text mb-1"
-          >
-            Description
-          </label>
-          <div className="flex space-x-2">
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows="3"
-              className="w-full px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent themed-input"
-            ></textarea>
-            {/* A11Y-01: Descriptive aria-label to distinguish from tags Suggest button */}
-            <button
-              type="button"
-              onClick={generateDescriptionWithGemini}
-              disabled={
-                isGeneratingDescription || !formData.url || !formData.title
-              }
-              aria-label="Suggest description using AI"
-              className="px-3 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isGeneratingDescription ? "Generating..." : "Suggest"}
-            </button>
-          </div>
-          {/* UX-01: Inline error feedback for description generation */}
-          {descriptionError && (
-            <div className="mt-1 flex items-center justify-between">
-              <p className="text-sm text-red-600">{descriptionError}</p>
-              <button
-                type="button"
-                onClick={() => showDescError("")}
-                className="text-red-400 hover:text-red-600 ml-2 text-xs"
-                aria-label="Dismiss description error"
+            <div>
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-primary-text mb-1"
               >
-                ×
-              </button>
-            </div>
-          )}
-        </div>
-        <div>
-          <label
-            htmlFor="tags"
-            className="block text-sm font-medium text-primary-text mb-1"
-          >
-            Tags (comma-separated)
-          </label>
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              id="tags"
-              name="tags"
-              value={formData.tags}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent themed-input"
-              placeholder="e.g., development, web, reference"
-            />
-            {/* A11Y-01: Descriptive aria-label to distinguish from description Suggest button */}
-            <button
-              type="button"
-              onClick={generateTagsWithGemini}
-              disabled={isGeneratingTags || !formData.url || !formData.title}
-              aria-label="Suggest tags using AI"
-              className="px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isGeneratingTags ? "Generating..." : "Suggest"}
-            </button>
-          </div>
-          {/* UX-01: Inline error feedback for tags generation */}
-          {tagsError && (
-            <div className="mt-1 flex items-center justify-between">
-              <p className="text-sm text-red-600">{tagsError}</p>
-              <button
-                type="button"
-                onClick={() => showTagsError("")}
-                className="text-red-400 hover:text-red-600 ml-2 text-xs"
-                aria-label="Dismiss tags error"
-              >
-                ×
-              </button>
-            </div>
-          )}
-        </div>
-        <div>
-          <label
-            htmlFor="folderId"
-            className="block text-sm font-medium text-primary-text mb-1"
-          >
-            Folder
-          </label>
-          <input
-            type="text"
-            id="folderId"
-            name="folderId"
-            value={formData.folderId}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent themed-input"
-            placeholder="e.g., work, personal"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="faviconUrl"
-            className="block text-sm font-medium text-primary-text mb-1"
-          >
-            Favicon URL
-          </label>
-          <input
-            type="url"
-            id="faviconUrl"
-            name="faviconUrl"
-            value={formData.faviconUrl}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent themed-input"
-            placeholder="e.g., https://example.com/favicon.ico"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-primary-text mb-1">
-            Rating
-          </label>
-          {/* A11Y-01, A11Y-03: Keyboard-navigable star rating with radiogroup semantics */}
-          <div role="radiogroup" aria-label="Rating" className="flex items-center space-x-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                id={`star-${star}`}
-                type="button"
-                role="radio"
-                aria-checked={star <= formData.rating}
-                aria-label={`${star} star${star === 1 ? "" : "s"}`}
-                tabIndex={0}
-                onClick={() => handleRatingChange(star)}
-                onKeyDown={(e) => handleRatingKeyDown(e, star)}
-                className={`h-6 w-6 cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent rounded-sm ${
-                  star <= formData.rating ? "text-yellow-400" : "text-secondary-text"
-                }`}
-              >
-                <svg
-                  className="h-6 w-6"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  aria-hidden="true"
+                Description
+              </label>
+              <div className="flex space-x-2">
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows="3"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent themed-input"
+                ></textarea>
+                {/* A11Y-01: Descriptive aria-label to distinguish from tags Suggest button */}
+                <button
+                  type="button"
+                  onClick={generateDescriptionWithGemini}
+                  disabled={isGeneratingDescription || !formData.url || !formData.title}
+                  aria-label="Suggest description using AI"
+                  className="px-3 py-2 text-sm font-medium text-white bg-accent hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.683-1.539 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.783.565-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.07-3.292z" />
-                </svg>
+                  {isGeneratingDescription ? "Generating..." : "Suggest"}
+                </button>
+              </div>
+              {/* UX-01: Inline error feedback for description generation */}
+              {descriptionError && (
+                <div className="mt-1 flex items-center justify-between">
+                  <p className="text-sm text-red-600">{descriptionError}</p>
+                  <button
+                    type="button"
+                    onClick={() => showDescError("")}
+                    className="text-red-400 hover:text-red-600 ml-2 text-xs"
+                    aria-label="Dismiss description error"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+            </div>
+            <div>
+              <label htmlFor="tags" className="block text-sm font-medium text-primary-text mb-1">
+                Tags (comma-separated)
+              </label>
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  id="tags"
+                  name="tags"
+                  value={formData.tags}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent themed-input"
+                  placeholder="e.g., development, web, reference"
+                />
+                {/* A11Y-01: Descriptive aria-label to distinguish from description Suggest button */}
+                <button
+                  type="button"
+                  onClick={generateTagsWithGemini}
+                  disabled={isGeneratingTags || !formData.url || !formData.title}
+                  aria-label="Suggest tags using AI"
+                  className="px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGeneratingTags ? "Generating..." : "Suggest"}
+                </button>
+              </div>
+              {/* UX-01: Inline error feedback for tags generation */}
+              {tagsError && (
+                <div className="mt-1 flex items-center justify-between">
+                  <p className="text-sm text-red-600">{tagsError}</p>
+                  <button
+                    type="button"
+                    onClick={() => showTagsError("")}
+                    className="text-red-400 hover:text-red-600 ml-2 text-xs"
+                    aria-label="Dismiss tags error"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+            </div>
+            <div>
+              <label
+                htmlFor="folderId"
+                className="block text-sm font-medium text-primary-text mb-1"
+              >
+                Folder
+              </label>
+              <input
+                type="text"
+                id="folderId"
+                name="folderId"
+                value={formData.folderId}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent themed-input"
+                placeholder="e.g., work, personal"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="faviconUrl"
+                className="block text-sm font-medium text-primary-text mb-1"
+              >
+                Favicon URL
+              </label>
+              <input
+                type="url"
+                id="faviconUrl"
+                name="faviconUrl"
+                value={formData.faviconUrl}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent themed-input"
+                placeholder="e.g., https://example.com/favicon.ico"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-primary-text mb-1">Rating</label>
+              {/* A11Y-01, A11Y-03: Keyboard-navigable star rating with radiogroup semantics */}
+              <div role="radiogroup" aria-label="Rating" className="flex items-center space-x-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    id={`star-${star}`}
+                    type="button"
+                    role="radio"
+                    aria-checked={star <= formData.rating}
+                    aria-label={`${star} star${star === 1 ? "" : "s"}`}
+                    tabIndex={0}
+                    onClick={() => handleRatingChange(star)}
+                    onKeyDown={(e) => handleRatingKeyDown(e, star)}
+                    className={`h-6 w-6 cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent rounded-sm ${
+                      star <= formData.rating ? "text-yellow-400" : "text-secondary-text"
+                    }`}
+                  >
+                    <svg
+                      className="h-6 w-6"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      aria-hidden="true"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.683-1.539 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.783.565-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.462a1 1 0 00.95-.69l1.07-3.292z" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          {pendingAction ? (
+            <div className="mt-4 p-3 rounded-md bg-yellow-50 border border-yellow-300 text-sm">
+              <p className="text-yellow-800 mb-2">
+                An AI suggestion is still loading. Proceed anyway?
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setPendingAction(null)}
+                  className="px-3 py-1 rounded-md bg-secondary-bg text-primary-text border border-border hover:bg-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  Keep waiting
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const fn = pendingAction.fn;
+                    setPendingAction(null);
+                    fn();
+                  }}
+                  className="px-3 py-1 rounded-md bg-yellow-600 text-white hover:bg-yellow-700 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                >
+                  Proceed
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-end space-x-3">
+              {bookmark && bookmark.id && (
+                <button
+                  type="button"
+                  onClick={() => guardedAction("delete", () => onDelete(bookmark.id))}
+                  className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-200"
+                >
+                  Delete
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => guardedAction("close", onClose)}
+                className="px-4 py-2 bg-secondary-bg text-primary-text border border-border rounded-md hover:bg-border focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-colors duration-200"
+              >
+                Cancel
               </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      {pendingAction ? (
-        <div className="mt-4 p-3 rounded-md bg-yellow-50 border border-yellow-300 text-sm">
-          <p className="text-yellow-800 mb-2">
-            An AI suggestion is still loading. Proceed anyway?
-          </p>
-          <div className="flex gap-2 justify-end">
-            <button
-              type="button"
-              onClick={() => setPendingAction(null)}
-              className="px-3 py-1 rounded-md bg-secondary-bg text-primary-text border border-border hover:bg-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              Keep waiting
-            </button>
-            <button
-              type="button"
-              onClick={() => { const fn = pendingAction.fn; setPendingAction(null); fn(); }}
-              className="px-3 py-1 rounded-md bg-yellow-600 text-white hover:bg-yellow-700 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            >
-              Proceed
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex justify-end space-x-3">
-          {bookmark && bookmark.id && (
-            <button
-              type="button"
-              onClick={() => guardedAction("delete", () => onDelete(bookmark.id))}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors duration-200"
-            >
-              Delete
-            </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-colors duration-200"
+              >
+                Save Bookmark
+              </button>
+            </div>
           )}
-          <button
-            type="button"
-            onClick={() => guardedAction("close", onClose)}
-            className="px-4 py-2 bg-secondary-bg text-primary-text border border-border rounded-md hover:bg-border focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-colors duration-200"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-colors duration-200"
-          >
-            Save Bookmark
-          </button>
-        </div>
-      )}
-    </form>
+        </form>
       </div>
     </div>
   );

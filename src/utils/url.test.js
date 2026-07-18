@@ -71,9 +71,7 @@ describe("isPublicHttpUrl (#10)", () => {
 
 describe("escapeHtml (#12)", () => {
   it("escapes the five HTML-significant characters", () => {
-    expect(escapeHtml('a & b < c > d " e \' f')).toBe(
-      "a &amp; b &lt; c &gt; d &quot; e &#39; f"
-    );
+    expect(escapeHtml("a & b < c > d \" e ' f")).toBe("a &amp; b &lt; c &gt; d &quot; e &#39; f");
   });
 
   it("neutralizes an attribute-breaking bookmark title", () => {

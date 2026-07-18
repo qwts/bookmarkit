@@ -19,7 +19,9 @@ export default class ErrorBoundary extends React.Component {
     // In dev mode, re-throw so React's error overlay still appears
     if (import.meta.env.DEV) {
       // Defer so the boundary still renders the fallback, but overlay is triggered
-      setTimeout(() => { throw error; }, 0);
+      setTimeout(() => {
+        throw error;
+      }, 0);
     }
   }
 
@@ -57,7 +59,13 @@ export default class ErrorBoundary extends React.Component {
           <p style={{ fontWeight: 600, fontSize: "16px", marginBottom: "8px" }}>
             Something went wrong.
           </p>
-          <p style={{ fontSize: "14px", color: "var(--text-secondary, #6b7280)", marginBottom: "16px" }}>
+          <p
+            style={{
+              fontSize: "14px",
+              color: "var(--text-secondary, #6b7280)",
+              marginBottom: "16px",
+            }}
+          >
             {this.props.fallbackMessage || "An unexpected error occurred in this section."}
           </p>
           <button

@@ -11,20 +11,20 @@
 // - persistSortedOrder({ sortBy: string, order: 'asc'|'desc' }): Promise<void> (optional)
 
 export const STORE_TYPES = {
-  CHROME: 'chrome',
-  FIREBASE: 'firebase',
-  LOCAL: 'local',
+  CHROME: "chrome",
+  FIREBASE: "firebase",
+  LOCAL: "local",
 };
 
 export async function getStore(type = STORE_TYPES.CHROME, options = {}) {
   if (type === STORE_TYPES.LOCAL) {
-    const mod = await import('./localCompositeStore.js');
+    const mod = await import("./localCompositeStore.js");
     return mod.createLocalCompositeStore(options);
   }
   if (type === STORE_TYPES.FIREBASE) {
-    const mod = await import('./firebaseStore.js');
+    const mod = await import("./firebaseStore.js");
     return mod.createFirebaseStore(options);
   }
-  const mod = await import('./chromeBookmarksStore.js');
+  const mod = await import("./chromeBookmarksStore.js");
   return mod.createChromeBookmarksStore(options);
 }

@@ -1,8 +1,26 @@
 // Firebase implementation conforming to the common store interface
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, writeBatch, query, getDocs, orderBy } from 'firebase/firestore';
-import { chunk, MAX_FIRESTORE_BATCH_OPS } from './batching.js';
+import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  signInAnonymously,
+  signInWithCustomToken,
+  onAuthStateChanged,
+} from "firebase/auth";
+import {
+  getFirestore,
+  enableIndexedDbPersistence,
+  collection,
+  doc,
+  onSnapshot,
+  addDoc,
+  setDoc,
+  deleteDoc,
+  writeBatch,
+  query,
+  getDocs,
+  orderBy,
+} from "firebase/firestore";
+import { chunk, MAX_FIRESTORE_BATCH_OPS } from "./batching.js";
 
 export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken }) {
   let listeners = new Set();
@@ -14,7 +32,7 @@ export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken })
 
   const notify = (all) => listeners.forEach((cb) => cb(all));
 
-  const collectionRef = () => collection(db, 'artifacts', appId, 'users', userId, 'bookmarks');
+  const collectionRef = () => collection(db, "artifacts", appId, "users", userId, "bookmarks");
 
   // #15: Commit a list of write operations in batches of <=500 (the Firestore
   // limit). Each op is a function that applies one write to the passed batch.
@@ -30,7 +48,7 @@ export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken })
 
   const api = {
     async init() {
-      if (!firebaseConfig) throw new Error('firebaseConfig required');
+      if (!firebaseConfig) throw new Error("firebaseConfig required");
       const app = initializeApp(firebaseConfig);
       auth = getAuth(app);
       db = getFirestore(app);
@@ -56,38 +74,44 @@ export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken })
       try {
         await enableIndexedDbPersistence(db);
       } catch (e) {
-        if (e.code === 'failed-precondition') {
+        if (e.code === "failed-precondition") {
           // Multiple tabs open — persistence only works in one tab at a time.
-          console.warn('Firestore offline persistence unavailable: multiple tabs open.');
-        } else if (e.code === 'unimplemented') {
+          console.warn("Firestore offline persistence unavailable: multiple tabs open.");
+        } else if (e.code === "unimplemented") {
           // Browser does not support IndexedDB.
-          console.warn('Firestore offline persistence unavailable: browser unsupported.');
+          console.warn("Firestore offline persistence unavailable: browser unsupported.");
         }
       }
       // PERF-04: Subscribe to changes with error handler to detect auth/rules failures
       unsubSnapshot = onSnapshot(
-        query(collectionRef(), orderBy('position', 'asc'), orderBy('title', 'asc')),
+        query(collectionRef(), orderBy("position", "asc"), orderBy("title", "asc")),
         (snapshot) => {
-          const all = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+          const all = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
           notify(all);
         },
         (error) => {
           // PERF-04: Handle subscription errors (e.g., expired auth token, changed rules)
-          console.error('Firestore snapshot subscription error:', error);
+          console.error("Firestore snapshot subscription error:", error);
           notify([]);
         }
       );
     },
     async list() {
-      const snap = await getDocs(query(collectionRef(), orderBy('position', 'asc'), orderBy('title', 'asc')));
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const snap = await getDocs(
+        query(collectionRef(), orderBy("position", "asc"), orderBy("title", "asc"))
+      );
+      return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     },
     subscribe(cb) {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
     async create(bookmark) {
-      const ref = await addDoc(collectionRef(), { ...bookmark, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+      const ref = await addDoc(collectionRef(), {
+        ...bookmark,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
       await setDoc(ref, { id: ref.id }, { merge: true });
       return { ...bookmark, id: ref.id };
     },
@@ -110,7 +134,13 @@ export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken })
       snap.forEach((d) => ops.push((batch) => batch.delete(d.ref)));
       bookmarks.forEach((b, index) => {
         const dref = doc(collectionRef());
-        const data = { ...b, id: dref.id, position: typeof b.position === 'number' ? b.position : index, createdAt: b.createdAt || new Date().toISOString(), updatedAt: b.updatedAt || new Date().toISOString() };
+        const data = {
+          ...b,
+          id: dref.id,
+          position: typeof b.position === "number" ? b.position : index,
+          createdAt: b.createdAt || new Date().toISOString(),
+          updatedAt: b.updatedAt || new Date().toISOString(),
+        };
         ops.push((batch) => batch.set(dref, data));
       });
       await commitInChunks(ops);
@@ -122,7 +152,12 @@ export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken })
       const ops = [];
       bookmarks.forEach((b) => {
         const dref = doc(collectionRef());
-        const data = { ...b, id: dref.id, createdAt: b.createdAt || new Date().toISOString(), updatedAt: b.updatedAt || new Date().toISOString() };
+        const data = {
+          ...b,
+          id: dref.id,
+          createdAt: b.createdAt || new Date().toISOString(),
+          updatedAt: b.updatedAt || new Date().toISOString(),
+        };
         ops.push((batch) => batch.set(dref, data));
         added.push(data);
       });
@@ -140,32 +175,37 @@ export function createFirebaseStore({ firebaseConfig, appId, initialAuthToken })
         ...orderedIds.filter((id) => existingIds.includes(id)),
         ...existingIds.filter((id) => !orderedSet.has(id)),
       ];
-      const ops = normalized.map((id, idx) => (batch) =>
-        batch.set(doc(collectionRef(), id), { position: idx, updatedAt: new Date().toISOString() }, { merge: true })
+      const ops = normalized.map(
+        (id, idx) => (batch) =>
+          batch.set(
+            doc(collectionRef(), id),
+            { position: idx, updatedAt: new Date().toISOString() },
+            { merge: true }
+          )
       );
       await commitInChunks(ops);
     },
     /**
      * Compute a sorted order by field and persist via positions.
      */
-    async persistSortedOrder({ sortBy = 'title', order = 'asc' } = {}) {
+    async persistSortedOrder({ sortBy = "title", order = "asc" } = {}) {
       const list = await this.list();
       const sorted = [...list].sort((a, b) => {
-        let valA = a[sortBy] ?? '';
-        let valB = b[sortBy] ?? '';
-        if (sortBy === 'rating') {
+        let valA = a[sortBy] ?? "";
+        let valB = b[sortBy] ?? "";
+        if (sortBy === "rating") {
           valA = a.rating || 0;
           valB = b.rating || 0;
         } else {
-          if (typeof valA === 'string') valA = valA.toLowerCase();
-          if (typeof valB === 'string') valB = valB.toLowerCase();
+          if (typeof valA === "string") valA = valA.toLowerCase();
+          if (typeof valB === "string") valB = valB.toLowerCase();
         }
-        if (order === 'asc') return valA < valB ? -1 : valA > valB ? 1 : 0;
+        if (order === "asc") return valA < valB ? -1 : valA > valB ? 1 : 0;
         return valA > valB ? -1 : valA < valB ? 1 : 0;
       });
       const orderedIds = sorted.map((b) => b.id);
       await this.reorderBookmarks(orderedIds);
-    }
+    },
   };
 
   return api;

@@ -43,11 +43,16 @@ export function useBookmarkStore() {
         if (cancelled) return;
         setBookmarks(data);
         setIsLoading(false);
-        unsub = s.subscribe((all) => { if (!cancelled) setBookmarks(all); });
+        unsub = s.subscribe((all) => {
+          if (!cancelled) setBookmarks(all);
+        });
       })();
-      return () => { cancelled = true; unsub?.(); };
+      return () => {
+        cancelled = true;
+        unsub?.();
+      };
     },
-    [],
+    []
   );
 
   const saveBookmark = useCallback(async (bookmarkToSave, showMessage) => {
@@ -78,7 +83,9 @@ export function useBookmarkStore() {
       await storeRef.current.removeMany(ids);
     } else {
       for (const id of ids) {
-        try { await storeRef.current.remove(id); } catch {}
+        try {
+          await storeRef.current.remove(id);
+        } catch {}
       }
     }
   }, []);
