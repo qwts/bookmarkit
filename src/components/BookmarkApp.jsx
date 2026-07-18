@@ -35,7 +35,10 @@ const getImportResultMessage = (importedCount, skippedCount, emptyMessage) => {
   }
 
   if (skippedCount > 0) {
-    return { message: `No new bookmarks imported. Skipped ${skippedCount} duplicate(s).`, type: "info" };
+    return {
+      message: `No new bookmarks imported. Skipped ${skippedCount} duplicate(s).`,
+      type: "info",
+    };
   }
 
   return { message: emptyMessage, type: "info" };
@@ -49,9 +52,16 @@ const BookmarkApp = () => {
 
   // ─── Store ──────────────────────────────────────────────────────────────────
   const {
-    bookmarks, isLoading, importProgress,
-    storeRef, init, saveBookmark, deleteBookmarks,
-    saveAllBookmarks, appendBookmarks, persistSortedOrder,
+    bookmarks,
+    isLoading,
+    importProgress,
+    storeRef,
+    init,
+    saveBookmark,
+    deleteBookmarks,
+    saveAllBookmarks,
+    appendBookmarks,
+    persistSortedOrder,
   } = useBookmarkStore();
 
   // Init store on mount
@@ -60,7 +70,8 @@ const BookmarkApp = () => {
   // ─── LLM provider state (#9: stored in chrome.storage.local, not sync — the
   // API key is a secret and must not replicate to Google's cloud / other devices) ─────
   const [runtimeProvider, setRuntimeProvider] = useState(() => {
-    const globalDefault = (typeof __llm_provider__ !== "undefined" && __llm_provider__) || LLM_PROVIDERS.GEMINI;
+    const globalDefault =
+      (typeof __llm_provider__ !== "undefined" && __llm_provider__) || LLM_PROVIDERS.GEMINI;
     return (globalDefault || LLM_PROVIDERS.GEMINI).toString().toLowerCase();
   });
   const [runtimeProviderOptions, setRuntimeProviderOptions] = useState({});
@@ -79,26 +90,48 @@ const BookmarkApp = () => {
           // sync so the key stops replicating to Google's backend and other devices.
           if (chrome.storage.sync) {
             try {
-              const synced = await chrome.storage.sync.get(["bm_runtime_llm_provider", "bm_runtime_llm_options"]);
+              const synced = await chrome.storage.sync.get([
+                "bm_runtime_llm_provider",
+                "bm_runtime_llm_options",
+              ]);
               const migrate = {};
-              if (synced.bm_runtime_llm_provider) migrate.bm_runtime_llm_provider = synced.bm_runtime_llm_provider;
-              if (synced.bm_runtime_llm_options) migrate.bm_runtime_llm_options = synced.bm_runtime_llm_options;
+              if (synced.bm_runtime_llm_provider)
+                migrate.bm_runtime_llm_provider = synced.bm_runtime_llm_provider;
+              if (synced.bm_runtime_llm_options)
+                migrate.bm_runtime_llm_options = synced.bm_runtime_llm_options;
               if (Object.keys(migrate).length) {
                 await storage.set(migrate);
-                await chrome.storage.sync.remove(["bm_runtime_llm_provider", "bm_runtime_llm_options"]);
+                await chrome.storage.sync.remove([
+                  "bm_runtime_llm_provider",
+                  "bm_runtime_llm_options",
+                ]);
               }
-            } catch { /* sync unavailable — nothing to migrate */ }
+            } catch {
+              /* sync unavailable — nothing to migrate */
+            }
           }
-          const result = await storage.get(["bm_runtime_llm_provider", "bm_runtime_llm_options", "bm_runtime_llm_options_enc"]);
+          const result = await storage.get([
+            "bm_runtime_llm_provider",
+            "bm_runtime_llm_options",
+            "bm_runtime_llm_options_enc",
+          ]);
           let provider = result.bm_runtime_llm_provider;
           let optionsStr = result.bm_runtime_llm_options;
           if (!provider) {
             const old = localStorage.getItem("bm_runtime_llm_provider");
-            if (old) { provider = old; storage.set({ bm_runtime_llm_provider: old }); localStorage.removeItem("bm_runtime_llm_provider"); }
+            if (old) {
+              provider = old;
+              storage.set({ bm_runtime_llm_provider: old });
+              localStorage.removeItem("bm_runtime_llm_provider");
+            }
           }
           if (!optionsStr && !result.bm_runtime_llm_options_enc) {
             const old = localStorage.getItem("bm_runtime_llm_options");
-            if (old) { optionsStr = old; storage.set({ bm_runtime_llm_options: old }); localStorage.removeItem("bm_runtime_llm_options"); }
+            if (old) {
+              optionsStr = old;
+              storage.set({ bm_runtime_llm_options: old });
+              localStorage.removeItem("bm_runtime_llm_options");
+            }
           }
           if (provider) setRuntimeProvider(provider.toString().toLowerCase());
           // #29: if an encrypted blob exists, stay locked until the user unlocks with a passphrase.
@@ -106,7 +139,11 @@ const BookmarkApp = () => {
             setOptionsEncrypted(true);
             setOptionsLocked(true);
           } else if (optionsStr) {
-            try { setRuntimeProviderOptions(JSON.parse(optionsStr)); } catch { /* ignore */ }
+            try {
+              setRuntimeProviderOptions(JSON.parse(optionsStr));
+            } catch {
+              /* ignore */
+            }
           }
         } else {
           const saved = localStorage.getItem("bm_runtime_llm_provider");
@@ -117,10 +154,16 @@ const BookmarkApp = () => {
             setOptionsEncrypted(true);
             setOptionsLocked(true);
           } else if (raw) {
-            try { setRuntimeProviderOptions(JSON.parse(raw)); } catch { /* ignore */ }
+            try {
+              setRuntimeProviderOptions(JSON.parse(raw));
+            } catch {
+              /* ignore */
+            }
           }
         }
-      } catch (e) { console.error("Failed to load LLM settings:", e); }
+      } catch (e) {
+        console.error("Failed to load LLM settings:", e);
+      }
     })();
   }, []);
 
@@ -129,14 +172,19 @@ const BookmarkApp = () => {
       if (typeof chrome !== "undefined" && chrome.storage?.local) {
         // #9: secrets live in device-local storage only, never chrome.storage.sync.
         await chrome.storage.local.set({ [key]: value });
-      } else { localStorage.setItem(key, value); }
+      } else {
+        localStorage.setItem(key, value);
+      }
       return true;
-    } catch { return false; } // #36: report failure so callers don't drop plaintext on a failed encrypted write
+    } catch {
+      return false;
+    } // #36: report failure so callers don't drop plaintext on a failed encrypted write
   }, []);
 
   const removeLLMSetting = useCallback(async (key) => {
     try {
-      if (typeof chrome !== "undefined" && chrome.storage?.local) await chrome.storage.local.remove(key);
+      if (typeof chrome !== "undefined" && chrome.storage?.local)
+        await chrome.storage.local.remove(key);
       else localStorage.removeItem(key);
     } catch {}
   }, []);
@@ -148,40 +196,56 @@ const BookmarkApp = () => {
         return r[key];
       }
       return localStorage.getItem(key);
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   }, []);
 
   // #29: persist the full provider-options object, encrypting it at rest when a
   // passphrase is active. When encrypted, the plaintext key is removed from storage.
-  const persistProviderOptions = useCallback(async (nextOptions) => {
-    try {
-      if (optionsEncrypted && passphraseRef.current) {
-        const blob = await encryptString(JSON.stringify(nextOptions), passphraseRef.current);
-        // #36: only remove the plaintext copy once the encrypted write actually succeeds.
-        const ok = await saveLLMSetting("bm_runtime_llm_options_enc", blob);
-        if (ok) await removeLLMSetting("bm_runtime_llm_options");
-      } else {
-        await saveLLMSetting("bm_runtime_llm_options", JSON.stringify(nextOptions));
+  const persistProviderOptions = useCallback(
+    async (nextOptions) => {
+      try {
+        if (optionsEncrypted && passphraseRef.current) {
+          const blob = await encryptString(JSON.stringify(nextOptions), passphraseRef.current);
+          // #36: only remove the plaintext copy once the encrypted write actually succeeds.
+          const ok = await saveLLMSetting("bm_runtime_llm_options_enc", blob);
+          if (ok) await removeLLMSetting("bm_runtime_llm_options");
+        } else {
+          await saveLLMSetting("bm_runtime_llm_options", JSON.stringify(nextOptions));
+        }
+      } catch (e) {
+        console.error("Failed to persist LLM options:", e);
       }
-    } catch (e) { console.error("Failed to persist LLM options:", e); }
-  }, [optionsEncrypted, saveLLMSetting, removeLLMSetting]);
+    },
+    [optionsEncrypted, saveLLMSetting, removeLLMSetting]
+  );
 
-  const handleEnableEncryption = useCallback(async (passphrase) => {
-    if (!passphrase) return;
-    try {
-      const blob = await encryptString(JSON.stringify(runtimeProviderOptions), passphrase);
-      // #36: don't remove the plaintext key or flip to "encrypted" unless the write succeeded.
-      const ok = await saveLLMSetting("bm_runtime_llm_options_enc", blob);
-      if (!ok) { showCustomMessage("Couldn't save the encrypted key. Encryption not enabled.", "error"); return; }
-      await removeLLMSetting("bm_runtime_llm_options");
-      passphraseRef.current = passphrase;
-      setOptionsEncrypted(true);
-      setOptionsLocked(false);
-      showCustomMessage("API key encrypted. You'll enter this passphrase once per session.", "success");
-    } catch {
-      showCustomMessage("Couldn't encrypt the API key. Encryption not enabled.", "error");
-    }
-  }, [runtimeProviderOptions, saveLLMSetting, removeLLMSetting, showCustomMessage]);
+  const handleEnableEncryption = useCallback(
+    async (passphrase) => {
+      if (!passphrase) return;
+      try {
+        const blob = await encryptString(JSON.stringify(runtimeProviderOptions), passphrase);
+        // #36: don't remove the plaintext key or flip to "encrypted" unless the write succeeded.
+        const ok = await saveLLMSetting("bm_runtime_llm_options_enc", blob);
+        if (!ok) {
+          showCustomMessage("Couldn't save the encrypted key. Encryption not enabled.", "error");
+          return;
+        }
+        await removeLLMSetting("bm_runtime_llm_options");
+        passphraseRef.current = passphrase;
+        setOptionsEncrypted(true);
+        setOptionsLocked(false);
+        showCustomMessage(
+          "API key encrypted. You'll enter this passphrase once per session.",
+          "success"
+        );
+      } catch {
+        showCustomMessage("Couldn't encrypt the API key. Encryption not enabled.", "error");
+      }
+    },
+    [runtimeProviderOptions, saveLLMSetting, removeLLMSetting, showCustomMessage]
+  );
 
   const handleDisableEncryption = useCallback(async () => {
     // If still locked (e.g. forgotten passphrase), clear the options entirely so
@@ -195,18 +259,21 @@ const BookmarkApp = () => {
     setOptionsLocked(false);
   }, [optionsLocked, runtimeProviderOptions, saveLLMSetting, removeLLMSetting]);
 
-  const handleUnlockOptions = useCallback(async (passphrase) => {
-    try {
-      const blob = await getLLMSetting("bm_runtime_llm_options_enc");
-      const json = await decryptString(blob, passphrase);
-      setRuntimeProviderOptions(JSON.parse(json));
-      passphraseRef.current = passphrase;
-      setOptionsLocked(false);
-      return true;
-    } catch {
-      return false; // wrong passphrase or corrupt blob
-    }
-  }, [getLLMSetting]);
+  const handleUnlockOptions = useCallback(
+    async (passphrase) => {
+      try {
+        const blob = await getLLMSetting("bm_runtime_llm_options_enc");
+        const json = await decryptString(blob, passphrase);
+        setRuntimeProviderOptions(JSON.parse(json));
+        passphraseRef.current = passphrase;
+        setOptionsLocked(false);
+        return true;
+      } catch {
+        return false; // wrong passphrase or corrupt blob
+      }
+    },
+    [getLLMSetting]
+  );
 
   // ─── UI state ───────────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -233,13 +300,13 @@ const BookmarkApp = () => {
   const undoTimerRef = useRef(null);
 
   // ARCH-04: Rate limiting refs
-  const agentRequestIdRef       = useRef(0);
+  const agentRequestIdRef = useRef(0);
   const agentAbortControllerRef = useRef(null);
   const agentLastCallTimestampRef = useRef(0);
 
   // Stable refs for keyboard shortcut handlers
-  const bookmarksRef               = useRef(bookmarks);
-  const selectedBookmarkIdRef      = useRef(selectedBookmarkId);
+  const bookmarksRef = useRef(bookmarks);
+  const selectedBookmarkIdRef = useRef(selectedBookmarkId);
   const multiSelectedBookmarkIdsRef = useRef(multiSelectedBookmarkIds);
   useEffect(() => {
     bookmarksRef.current = bookmarks;
@@ -254,7 +321,7 @@ const BookmarkApp = () => {
   const debouncedFilterText = useDebounce(manualFilters.text, 300);
   const effectiveFilters = useMemo(
     () => ({ ...manualFilters, text: debouncedFilterText }),
-    [manualFilters, debouncedFilterText],
+    [manualFilters, debouncedFilterText]
   );
 
   // ─── URL validation ──────────────────────────────────────────────────────────
@@ -288,35 +355,42 @@ const BookmarkApp = () => {
     if (!bookmark?.url || bookmark.urlStatus === "ignored") return;
 
     let cancelled = false;
-    fetchUrlStatus(bookmark.url).then(({ status, redirectUrl }) => {
-      if (cancelled) return;
-      const newUrl = redirectUrl || bookmark.url;
-      if (newUrl !== bookmark.url || status !== bookmark.urlStatus) {
-        storeRef.current?.update(bookmark.id, { url: newUrl, urlStatus: status });
-      }
-    }).catch(() => {});
+    fetchUrlStatus(bookmark.url)
+      .then(({ status, redirectUrl }) => {
+        if (cancelled) return;
+        const newUrl = redirectUrl || bookmark.url;
+        if (newUrl !== bookmark.url || status !== bookmark.urlStatus) {
+          storeRef.current?.update(bookmark.id, { url: newUrl, urlStatus: status });
+        }
+      })
+      .catch(() => {});
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [selectedBookmarkId, fetchUrlStatus]); // bookmarksRef + storeRef are refs, no dep needed
 
   // ─── Displayed bookmarks (PERF-08: precise deps, ARCH-10: empty state handled in BookmarkList) ─
   // #53: the agent plan narrows first, then the manual filters layer on top. Tag facets
   // come from the planned set (pre-manual) so the chip row doesn't rearrange itself out
   // from under the pointer as you click chips.
-  const plannedBookmarks = useMemo(() => applyAgentPlan(lastAction, bookmarks), [bookmarks, lastAction]);
+  const plannedBookmarks = useMemo(
+    () => applyAgentPlan(lastAction, bookmarks),
+    [bookmarks, lastAction]
+  );
 
   const tagFacets = useMemo(() => deriveTagCounts(plannedBookmarks), [plannedBookmarks]);
 
   const displayedBookmarks = useMemo(
     () =>
       applyManualFilters(effectiveFilters, plannedBookmarks).map((b) =>
-        b.unreachable ? { ...b, urlStatus: "invalid" } : b,
+        b.unreachable ? { ...b, urlStatus: "invalid" } : b
       ),
-    [plannedBookmarks, effectiveFilters],
+    [plannedBookmarks, effectiveFilters]
   );
 
   // ─── Message helper ──────────────────────────────────────────────────────────
-   
+
   function showCustomMessage(message, type = "info") {
     setMessageModalContent({ message, type });
     setIsMessageModalOpen(true);
@@ -335,10 +409,13 @@ const BookmarkApp = () => {
   }, []);
 
   // ─── CRUD handlers ───────────────────────────────────────────────────────────
-  const handleSaveBookmark = useCallback(async (b) => {
-    await saveBookmark(b, showCustomMessage);
-    setIsModalOpen(false);
-  }, [saveBookmark]);
+  const handleSaveBookmark = useCallback(
+    async (b) => {
+      await saveBookmark(b, showCustomMessage);
+      setIsModalOpen(false);
+    },
+    [saveBookmark]
+  );
 
   const handleDeleteBookmark = useCallback((id) => {
     setBookmarksToDelete([id]);
@@ -383,59 +460,90 @@ const BookmarkApp = () => {
   }, []);
 
   const handleAddNewBookmark = useCallback(() => {
-    setEditingBookmark({ id: null, title: "", url: "", description: "", tags: [], rating: 0, folderId: "", faviconUrl: "" });
+    setEditingBookmark({
+      id: null,
+      title: "",
+      url: "",
+      description: "",
+      tags: [],
+      rating: 0,
+      folderId: "",
+      faviconUrl: "",
+    });
     setIsModalOpen(true);
   }, []);
 
   const handleImportExportOpen = useCallback(() => setIsImportExportModalOpen(true), []);
   const handleImportExportClose = useCallback(() => setIsImportExportModalOpen(false), []);
 
-  const handleBookmarkClick = useCallback((bookmark, e) => {
-    if (e?.shiftKey || e?.key === " ") {
-      // #11: only open http(s) URLs; block javascript:/data:/etc.
-      if (isSafeHttpUrl(bookmark.url)) window.open(bookmark.url, "_blank", "noopener,noreferrer");
-      else showCustomMessage("This bookmark has an unsupported or unsafe URL and was not opened.", "error");
-      setSelectedBookmarkId(null);
+  const handleBookmarkClick = useCallback(
+    (bookmark, e) => {
+      if (e?.shiftKey || e?.key === " ") {
+        // #11: only open http(s) URLs; block javascript:/data:/etc.
+        if (isSafeHttpUrl(bookmark.url)) window.open(bookmark.url, "_blank", "noopener,noreferrer");
+        else
+          showCustomMessage(
+            "This bookmark has an unsupported or unsafe URL and was not opened.",
+            "error"
+          );
+        setSelectedBookmarkId(null);
+        setMultiSelectedBookmarkIds([]);
+        return;
+      }
+      if (e?.metaKey || e?.ctrlKey) {
+        setMultiSelectedBookmarkIds((prev) => {
+          let next = prev;
+          if (selectedBookmarkId && !prev.includes(selectedBookmarkId))
+            next = [...prev, selectedBookmarkId];
+          return next.includes(bookmark.id)
+            ? next.filter((id) => id !== bookmark.id)
+            : [...next, bookmark.id];
+        });
+        setSelectedBookmarkId(null);
+        return;
+      }
+      setSelectedBookmarkId(bookmark.id);
       setMultiSelectedBookmarkIds([]);
-      return;
-    }
-    if (e?.metaKey || e?.ctrlKey) {
-      setMultiSelectedBookmarkIds((prev) => {
-        let next = prev;
-        if (selectedBookmarkId && !prev.includes(selectedBookmarkId)) next = [...prev, selectedBookmarkId];
-        return next.includes(bookmark.id) ? next.filter((id) => id !== bookmark.id) : [...next, bookmark.id];
-      });
-      setSelectedBookmarkId(null);
-      return;
-    }
-    setSelectedBookmarkId(bookmark.id);
-    setMultiSelectedBookmarkIds([]);
-  }, [selectedBookmarkId]);
+    },
+    [selectedBookmarkId]
+  );
 
   const handleBookmarkDoubleClick = useCallback((bookmark) => {
     setEditingBookmark(bookmark);
     setIsModalOpen(true);
   }, []);
 
-  const handleBookmarkKeyDown = useCallback((e, bookmark) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      if (e.shiftKey) {
-        if (bookmark.url) {
-          // #11: only open http(s) URLs; block javascript:/data:/etc.
-          if (isSafeHttpUrl(bookmark.url)) window.open(bookmark.url, "_blank", "noopener,noreferrer");
-          else showCustomMessage("This bookmark has an unsupported or unsafe URL and was not opened.", "error");
-          setSelectedBookmarkId(null); setMultiSelectedBookmarkIds([]);
+  const handleBookmarkKeyDown = useCallback(
+    (e, bookmark) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          if (bookmark.url) {
+            // #11: only open http(s) URLs; block javascript:/data:/etc.
+            if (isSafeHttpUrl(bookmark.url))
+              window.open(bookmark.url, "_blank", "noopener,noreferrer");
+            else
+              showCustomMessage(
+                "This bookmark has an unsupported or unsafe URL and was not opened.",
+                "error"
+              );
+            setSelectedBookmarkId(null);
+            setMultiSelectedBookmarkIds([]);
+          }
+          return;
         }
-        return;
+        handleBookmarkClick(bookmark);
       }
-      handleBookmarkClick(bookmark);
-    }
-  }, [handleBookmarkClick]);
+    },
+    [handleBookmarkClick]
+  );
 
   const handleRemoveDuplicates = useCallback(() => {
     const ids = findDuplicateIds(displayedBookmarks);
-    if (ids.length === 0) { showCustomMessage("No duplicate bookmarks found in the current view.", "info"); return; }
+    if (ids.length === 0) {
+      showCustomMessage("No duplicate bookmarks found in the current view.", "info");
+      return;
+    }
     setBookmarksToDelete(ids);
     setIsDeleteConfirmModalOpen(true);
   }, [displayedBookmarks]);
@@ -460,7 +568,10 @@ const BookmarkApp = () => {
   // A mousedown on any element that isn't a bookmark card (which stops propagation)
   // clears the selection — covers header, buttons, modals, empty space, everything.
   useEffect(() => {
-    const onMouseDown = () => { setSelectedBookmarkId(null); setMultiSelectedBookmarkIds([]); };
+    const onMouseDown = () => {
+      setSelectedBookmarkId(null);
+      setMultiSelectedBookmarkIds([]);
+    };
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, []);
@@ -469,9 +580,14 @@ const BookmarkApp = () => {
   useEffect(() => {
     const onKeyDown = async (e) => {
       const tag = e.target?.tagName?.toLowerCase();
-      const isTypingContext = ["input", "textarea", "select"].includes(tag) || e.target?.isContentEditable;
+      const isTypingContext =
+        ["input", "textarea", "select"].includes(tag) || e.target?.isContentEditable;
       if (isTypingContext) return;
-      if (e.key === "Escape") { setSelectedBookmarkId(null); setMultiSelectedBookmarkIds([]); setBookmarksToDelete([]); }
+      if (e.key === "Escape") {
+        setSelectedBookmarkId(null);
+        setMultiSelectedBookmarkIds([]);
+        setBookmarksToDelete([]);
+      }
       if (e.key === "h" || e.key === "H") setIsHeaderVisible((prev) => !prev);
       if (e.key === "c" && selectedBookmarkIdRef.current) {
         const selected = bookmarksRef.current.find((b) => b.id === selectedBookmarkIdRef.current);
@@ -490,73 +606,146 @@ const BookmarkApp = () => {
   useEffect(() => {
     const onKeyDown = (e) => {
       const tag = e.target?.tagName?.toLowerCase();
-      const isTypingContext = ["input", "textarea", "select"].includes(tag) || e.target?.isContentEditable;
-      if (isTypingContext || isModalOpen || isImportExportModalOpen || isDeleteConfirmModalOpen || isHelpModalOpen) return;
-      const isMac = navigator.userAgentData ? navigator.userAgentData.platform?.toUpperCase().includes("MAC") : navigator.userAgent.toUpperCase().includes("MAC");
-      if (e.key === "Escape") { setSelectedBookmarkId(null); setMultiSelectedBookmarkIds([]); setBookmarksToDelete([]); return; }
+      const isTypingContext =
+        ["input", "textarea", "select"].includes(tag) || e.target?.isContentEditable;
+      if (
+        isTypingContext ||
+        isModalOpen ||
+        isImportExportModalOpen ||
+        isDeleteConfirmModalOpen ||
+        isHelpModalOpen
+      )
+        return;
+      const isMac = navigator.userAgentData
+        ? navigator.userAgentData.platform?.toUpperCase().includes("MAC")
+        : navigator.userAgent.toUpperCase().includes("MAC");
+      if (e.key === "Escape") {
+        setSelectedBookmarkId(null);
+        setMultiSelectedBookmarkIds([]);
+        setBookmarksToDelete([]);
+        return;
+      }
       const comboA = (isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "a";
       const comboD = (isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "d";
       // #22: select the currently visible (filtered) bookmarks, not the whole store
-      if (comboA) { e.preventDefault(); setMultiSelectedBookmarkIds(displayedBookmarks.map((b) => b.id)); }
+      if (comboA) {
+        e.preventDefault();
+        setMultiSelectedBookmarkIds(displayedBookmarks.map((b) => b.id));
+      }
       if (comboD) {
         e.preventDefault();
-        const ids = selectedBookmarkId ? [selectedBookmarkId] : multiSelectedBookmarkIds.length ? [...multiSelectedBookmarkIds] : [];
+        const ids = selectedBookmarkId
+          ? [selectedBookmarkId]
+          : multiSelectedBookmarkIds.length
+            ? [...multiSelectedBookmarkIds]
+            : [];
         if (ids.length === 0) showCustomMessage("Please select bookmark(s) to delete.", "info");
-        else { setBookmarksToDelete(ids); setIsDeleteConfirmModalOpen(true); setSelectedBookmarkId(null); setMultiSelectedBookmarkIds([]); }
+        else {
+          setBookmarksToDelete(ids);
+          setIsDeleteConfirmModalOpen(true);
+          setSelectedBookmarkId(null);
+          setMultiSelectedBookmarkIds([]);
+        }
       }
       if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key.toLowerCase() === "e") {
-        const id = selectedBookmarkId || (multiSelectedBookmarkIds.length === 1 ? multiSelectedBookmarkIds[0] : null);
-        if (id) { const b = bookmarks.find((x) => x.id === id); if (b) { e.preventDefault(); setEditingBookmark(b); setIsModalOpen(true); } }
+        const id =
+          selectedBookmarkId ||
+          (multiSelectedBookmarkIds.length === 1 ? multiSelectedBookmarkIds[0] : null);
+        if (id) {
+          const b = bookmarks.find((x) => x.id === id);
+          if (b) {
+            e.preventDefault();
+            setEditingBookmark(b);
+            setIsModalOpen(true);
+          }
+        }
       }
       if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key.toLowerCase() === "d") {
-        const ids = selectedBookmarkId ? [selectedBookmarkId] : multiSelectedBookmarkIds.length ? [...multiSelectedBookmarkIds] : [];
-        if (ids.length > 0) { e.preventDefault(); setBookmarksToDelete(ids); setIsDeleteConfirmModalOpen(true); setSelectedBookmarkId(null); setMultiSelectedBookmarkIds([]); }
-        else showCustomMessage("Please select bookmark(s) to delete.", "info");
+        const ids = selectedBookmarkId
+          ? [selectedBookmarkId]
+          : multiSelectedBookmarkIds.length
+            ? [...multiSelectedBookmarkIds]
+            : [];
+        if (ids.length > 0) {
+          e.preventDefault();
+          setBookmarksToDelete(ids);
+          setIsDeleteConfirmModalOpen(true);
+          setSelectedBookmarkId(null);
+          setMultiSelectedBookmarkIds([]);
+        } else showCustomMessage("Please select bookmark(s) to delete.", "info");
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [bookmarks, displayedBookmarks, selectedBookmarkId, multiSelectedBookmarkIds, isModalOpen, isImportExportModalOpen, isDeleteConfirmModalOpen, isHelpModalOpen]);
+  }, [
+    bookmarks,
+    displayedBookmarks,
+    selectedBookmarkId,
+    multiSelectedBookmarkIds,
+    isModalOpen,
+    isImportExportModalOpen,
+    isDeleteConfirmModalOpen,
+    isHelpModalOpen,
+  ]);
 
   // ─── Persisted reorder (UX-05: with undo) ───────────────────────────────────
-  const persistReorder = useCallback(async (order = "asc", sortByOverride) => {
-    if (!storeRef.current) return;
-    const plan = Array.isArray(lastAction) ? lastAction : lastAction ? [lastAction] : [];
-    let sortBy = "title";
-    if (sortByOverride) sortBy = sortByOverride;
-    else {
-      const sortStep = plan.find((s) => s.action === "sortBookmarks");
-      if (sortStep?.parameters?.sortBy) sortBy = sortStep.parameters.sortBy;
-    }
-    // UX-05: snapshot current order before reordering
-    const orderedIds = [...bookmarks].map((b) => b.id);
-    try {
-      await persistSortedOrder({ sortBy, order });
-      showCustomMessage(`Reordered ${order === "asc" ? "ascending" : "descending"} by ${sortBy} and saved.`, "success");
-      if (plan.length > 0) {
-        const withoutSort = plan.filter((s) => !["sortBookmarks","reorder","reorderAscending","reorderDescending","persistSortedOrder"].includes(s.action));
-        setLastAction(withoutSort.length > 0 ? withoutSort : null);
-      }
-      scheduleUndo("Undo sort", async () => {
-        if (storeRef.current?.reorderBookmarks) await storeRef.current.reorderBookmarks(orderedIds);
-      });
-    } catch (e) {
-      console.error("Persist reorder failed", e);
-      showCustomMessage("Failed to persist new order.", "error");
-    }
-  }, [bookmarks, lastAction, persistSortedOrder, storeRef, scheduleUndo]);
-
-  const handlePersistReorderFromAgent = useCallback(async (step) => {
-    const action = (step?.action || "").toLowerCase();
-    const order = step?.parameters?.order || (action.includes("descending") ? "desc" : "asc");
-    let sortBy = step?.parameters?.sortBy || "title";
-    if (!step?.parameters?.sortBy) {
+  const persistReorder = useCallback(
+    async (order = "asc", sortByOverride) => {
+      if (!storeRef.current) return;
       const plan = Array.isArray(lastAction) ? lastAction : lastAction ? [lastAction] : [];
-      const sortStep = plan.find((s) => s.action === "sortBookmarks");
-      if (sortStep?.parameters?.sortBy) sortBy = sortStep.parameters.sortBy;
-    }
-    await persistReorder(order, sortBy);
-  }, [lastAction, persistReorder]);
+      let sortBy = "title";
+      if (sortByOverride) sortBy = sortByOverride;
+      else {
+        const sortStep = plan.find((s) => s.action === "sortBookmarks");
+        if (sortStep?.parameters?.sortBy) sortBy = sortStep.parameters.sortBy;
+      }
+      // UX-05: snapshot current order before reordering
+      const orderedIds = [...bookmarks].map((b) => b.id);
+      try {
+        await persistSortedOrder({ sortBy, order });
+        showCustomMessage(
+          `Reordered ${order === "asc" ? "ascending" : "descending"} by ${sortBy} and saved.`,
+          "success"
+        );
+        if (plan.length > 0) {
+          const withoutSort = plan.filter(
+            (s) =>
+              ![
+                "sortBookmarks",
+                "reorder",
+                "reorderAscending",
+                "reorderDescending",
+                "persistSortedOrder",
+              ].includes(s.action)
+          );
+          setLastAction(withoutSort.length > 0 ? withoutSort : null);
+        }
+        scheduleUndo("Undo sort", async () => {
+          if (storeRef.current?.reorderBookmarks)
+            await storeRef.current.reorderBookmarks(orderedIds);
+        });
+      } catch (e) {
+        console.error("Persist reorder failed", e);
+        showCustomMessage("Failed to persist new order.", "error");
+      }
+    },
+    [bookmarks, lastAction, persistSortedOrder, storeRef, scheduleUndo]
+  );
+
+  const handlePersistReorderFromAgent = useCallback(
+    async (step) => {
+      const action = (step?.action || "").toLowerCase();
+      const order = step?.parameters?.order || (action.includes("descending") ? "desc" : "asc");
+      let sortBy = step?.parameters?.sortBy || "title";
+      if (!step?.parameters?.sortBy) {
+        const plan = Array.isArray(lastAction) ? lastAction : lastAction ? [lastAction] : [];
+        const sortStep = plan.find((s) => s.action === "sortBookmarks");
+        if (sortStep?.parameters?.sortBy) sortBy = sortStep.parameters.sortBy;
+      }
+      await persistReorder(order, sortBy);
+    },
+    [lastAction, persistReorder]
+  );
 
   // ─── Agent engine ────────────────────────────────────────────────────────────
   // agentEngineRef always points to the latest agentEngine closure so that
@@ -568,7 +757,10 @@ const BookmarkApp = () => {
     if (!userQuery.trim()) return;
     // #29: the API key is encrypted and not unlocked this session — can't call the LLM.
     if (optionsLocked) {
-      showCustomMessage("Your API key is encrypted. Open Options and enter your passphrase to unlock it for this session.", "info");
+      showCustomMessage(
+        "Your API key is encrypted. Open Options and enter your passphrase to unlock it for this session.",
+        "info"
+      );
       return;
     }
     const now = Date.now();
@@ -590,12 +782,17 @@ const BookmarkApp = () => {
     Output schema: [{"action": string, "parameters": object, "priority": number}]
     Respond with ONLY a JSON object or array wrapped in a markdown code block.`;
 
-    const provider = runtimeProvider || (typeof __llm_provider__ !== "undefined" && __llm_provider__) || LLM_PROVIDERS.GEMINI;
+    const provider =
+      runtimeProvider ||
+      (typeof __llm_provider__ !== "undefined" && __llm_provider__) ||
+      LLM_PROVIDERS.GEMINI;
     const globalOpts = (typeof __llm_options__ !== "undefined" && __llm_options__) || {};
     const runtimeOpts = (runtimeProviderOptions && runtimeProviderOptions[provider]) || {};
     const merged = { ...globalOpts, ...runtimeOpts };
     // Strip empty strings so provider defaults (e.g. baseUrl) are used when unset
-    const llmOpts = Object.fromEntries(Object.entries(merged).filter(([, v]) => v !== "" && v != null));
+    const llmOpts = Object.fromEntries(
+      Object.entries(merged).filter(([, v]) => v !== "" && v != null)
+    );
     const llm = createLLM(provider, llmOpts);
 
     try {
@@ -610,13 +807,21 @@ const BookmarkApp = () => {
       // #21: run side-effecting steps in the LLM-assigned priority order
       for (const step of sortStepsByPriority(steps)) {
         if (step.action === "help") setIsHelpModalOpen(true);
-        if (step.action === "importBookmarks" || step.action === "exportBookmarks") setIsImportExportModalOpen(true);
+        if (step.action === "importBookmarks" || step.action === "exportBookmarks")
+          setIsImportExportModalOpen(true);
         if (step.action === "removeDuplicates") {
           const ids = findDuplicateIds(applyAgentPlan(combined, bookmarks));
-          if (ids.length > 0) { setBookmarksToDelete(ids); setIsDeleteConfirmModalOpen(true); }
-          else showCustomMessage("No duplicate bookmarks found in the current view.", "info");
+          if (ids.length > 0) {
+            setBookmarksToDelete(ids);
+            setIsDeleteConfirmModalOpen(true);
+          } else showCustomMessage("No duplicate bookmarks found in the current view.", "info");
         }
-        if (["reorder","reorderAscending","reorderDescending","persistSortedOrder"].includes(step.action)) await handlePersistReorderFromAgent(step);
+        if (
+          ["reorder", "reorderAscending", "reorderDescending", "persistSortedOrder"].includes(
+            step.action
+          )
+        )
+          await handlePersistReorderFromAgent(step);
       }
     } catch (error) {
       if (error.name === "AbortError") return;
@@ -633,59 +838,29 @@ const BookmarkApp = () => {
   // Keep ref current on every render so handleSearchInputKeyDown never goes stale.
   agentEngineRef.current = agentEngine;
 
-  const handleSearchInputKeyDown = useCallback((e) => {
-    if (e.key === "Enter") {
-      const q = (searchQuery || "").trim().toLowerCase();
-      if (q === "options") { setIsOptionsOpen(true); return; }
-      agentEngineRef.current(searchQuery);
-    }
-  }, [searchQuery]); // agentEngineRef is a stable ref — no need to add to deps
+  const handleSearchInputKeyDown = useCallback(
+    (e) => {
+      if (e.key === "Enter") {
+        const q = (searchQuery || "").trim().toLowerCase();
+        if (q === "options") {
+          setIsOptionsOpen(true);
+          return;
+        }
+        agentEngineRef.current(searchQuery);
+      }
+    },
+    [searchQuery]
+  ); // agentEngineRef is a stable ref — no need to add to deps
 
   // ─── Import handlers ─────────────────────────────────────────────────────────
-  const handleImportJson = useCallback(async (arr, replaceAll = false) => {
-    const existing = replaceAll ? [] : bookmarks;
-    // #11: only import entries with a safe http(s) URL.
-    const safe = (Array.isArray(arr) ? arr : []).filter((b) => b && typeof b === "object" && isSafeHttpUrl(b.url));
-    const { bookmarks: bookmarksToImport, skippedCount } = filterDuplicateImports(safe, existing);
-
-    if (replaceAll) {
-      await saveAllBookmarks(bookmarksToImport);
-    } else if (bookmarksToImport.length > 0) {
-      await appendBookmarks(bookmarksToImport);
-    }
-
-    const result = getImportResultMessage(bookmarksToImport.length, skippedCount, "No bookmarks found in the import data.");
-    showCustomMessage(result.message, result.type);
-    handleImportExportClose();
-    setLastAction(null);
-  }, [appendBookmarks, bookmarks, handleImportExportClose, saveAllBookmarks]);
-
-  const handleImportHtml = useCallback(async (html, replaceAll = false) => {
-    try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, "text/html");
-      const links = doc.querySelectorAll("a[href]");
-      const importedBookmarks = Array.from(links).map((link) => {
-        let folderId = "imported";
-        const parentH3 = link.closest("dl")?.previousElementSibling;
-        if (parentH3?.tagName === "H3") folderId = parentH3.textContent.trim().toLowerCase().replace(/\s+/g, "-");
-        return {
-          title: link.textContent.trim() || link.href,
-          url: link.href,
-          description: link.getAttribute("description") || "",
-          tags: [],
-          rating: 0,
-          folderId,
-          faviconUrl: link.getAttribute("icon") || "",
-          createdAt: link.getAttribute("add_date") ? new Date(parseInt(link.getAttribute("add_date")) * 1000).toISOString() : new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-      });
-
-      // #11: only import links with a safe http(s) URL.
-      const safeBookmarks = importedBookmarks.filter((b) => isSafeHttpUrl(b.url));
+  const handleImportJson = useCallback(
+    async (arr, replaceAll = false) => {
       const existing = replaceAll ? [] : bookmarks;
-      const { bookmarks: bookmarksToImport, skippedCount } = filterDuplicateImports(safeBookmarks, existing);
+      // #11: only import entries with a safe http(s) URL.
+      const safe = (Array.isArray(arr) ? arr : []).filter(
+        (b) => b && typeof b === "object" && isSafeHttpUrl(b.url)
+      );
+      const { bookmarks: bookmarksToImport, skippedCount } = filterDuplicateImports(safe, existing);
 
       if (replaceAll) {
         await saveAllBookmarks(bookmarksToImport);
@@ -693,27 +868,91 @@ const BookmarkApp = () => {
         await appendBookmarks(bookmarksToImport);
       }
 
-      if (safeBookmarks.length > 0) {
-        const result = getImportResultMessage(bookmarksToImport.length, skippedCount, "No bookmarks found in the imported HTML.");
-        showCustomMessage(result.message, result.type);
-      } else {
-        showCustomMessage("No bookmarks found in the imported HTML.", "info");
-      }
-      setLastAction(null);
-    } catch (e) {
-      console.error("Error parsing HTML bookmarks:", e);
-      showCustomMessage("Failed to parse HTML bookmarks.", "error");
-    } finally {
+      const result = getImportResultMessage(
+        bookmarksToImport.length,
+        skippedCount,
+        "No bookmarks found in the import data."
+      );
+      showCustomMessage(result.message, result.type);
       handleImportExportClose();
-    }
-  }, [appendBookmarks, bookmarks, handleImportExportClose, saveAllBookmarks]);
+      setLastAction(null);
+    },
+    [appendBookmarks, bookmarks, handleImportExportClose, saveAllBookmarks]
+  );
+
+  const handleImportHtml = useCallback(
+    async (html, replaceAll = false) => {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const links = doc.querySelectorAll("a[href]");
+        const importedBookmarks = Array.from(links).map((link) => {
+          let folderId = "imported";
+          const parentH3 = link.closest("dl")?.previousElementSibling;
+          if (parentH3?.tagName === "H3")
+            folderId = parentH3.textContent.trim().toLowerCase().replace(/\s+/g, "-");
+          return {
+            title: link.textContent.trim() || link.href,
+            url: link.href,
+            description: link.getAttribute("description") || "",
+            tags: [],
+            rating: 0,
+            folderId,
+            faviconUrl: link.getAttribute("icon") || "",
+            createdAt: link.getAttribute("add_date")
+              ? new Date(parseInt(link.getAttribute("add_date")) * 1000).toISOString()
+              : new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+        });
+
+        // #11: only import links with a safe http(s) URL.
+        const safeBookmarks = importedBookmarks.filter((b) => isSafeHttpUrl(b.url));
+        const existing = replaceAll ? [] : bookmarks;
+        const { bookmarks: bookmarksToImport, skippedCount } = filterDuplicateImports(
+          safeBookmarks,
+          existing
+        );
+
+        if (replaceAll) {
+          await saveAllBookmarks(bookmarksToImport);
+        } else if (bookmarksToImport.length > 0) {
+          await appendBookmarks(bookmarksToImport);
+        }
+
+        if (safeBookmarks.length > 0) {
+          const result = getImportResultMessage(
+            bookmarksToImport.length,
+            skippedCount,
+            "No bookmarks found in the imported HTML."
+          );
+          showCustomMessage(result.message, result.type);
+        } else {
+          showCustomMessage("No bookmarks found in the imported HTML.", "info");
+        }
+        setLastAction(null);
+      } catch (e) {
+        console.error("Error parsing HTML bookmarks:", e);
+        showCustomMessage("Failed to parse HTML bookmarks.", "error");
+      } finally {
+        handleImportExportClose();
+      }
+    },
+    [appendBookmarks, bookmarks, handleImportExportClose, saveAllBookmarks]
+  );
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "var(--bg-secondary)" }}>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "var(--bg-secondary)" }}
+      >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4" style={{ borderColor: "var(--accent)" }} />
+          <div
+            className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4"
+            style={{ borderColor: "var(--accent)" }}
+          />
           <p style={{ color: "var(--text-secondary)" }}>Loading bookmarks...</p>
         </div>
       </div>
@@ -721,13 +960,21 @@ const BookmarkApp = () => {
   }
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col font-sans" style={{ backgroundColor: "var(--bg-secondary)" }}>
+    <div
+      className="h-screen overflow-hidden flex flex-col font-sans"
+      style={{ backgroundColor: "var(--bg-secondary)" }}
+    >
       {/* UX-06: Import progress bar */}
       {importProgress && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-accent text-white text-sm text-center py-2">
           Importing… {importProgress.done} / {importProgress.total}
           <div className="h-1 bg-white bg-opacity-30 mt-1">
-            <div className="h-1 bg-white transition-all" style={{ width: `${Math.round((importProgress.done / importProgress.total) * 100)}%` }} />
+            <div
+              className="h-1 bg-white transition-all"
+              style={{
+                width: `${Math.round((importProgress.done / importProgress.total) * 100)}%`,
+              }}
+            />
           </div>
         </div>
       )}
@@ -736,8 +983,18 @@ const BookmarkApp = () => {
       {undoAction && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white rounded-lg px-4 py-3 flex items-center gap-3 shadow-lg">
           <span className="text-sm">{undoAction.label}</span>
-          <button onClick={async () => { dismissUndo(); await undoAction.restore(); }} className="text-sm text-accent font-semibold hover:underline">Undo</button>
-          <button onClick={dismissUndo} className="text-gray-400 hover:text-white text-xs">✕</button>
+          <button
+            onClick={async () => {
+              dismissUndo();
+              await undoAction.restore();
+            }}
+            className="text-sm text-accent font-semibold hover:underline"
+          >
+            Undo
+          </button>
+          <button onClick={dismissUndo} className="text-gray-400 hover:text-white text-xs">
+            ✕
+          </button>
         </div>
       )}
 
@@ -761,27 +1018,86 @@ const BookmarkApp = () => {
                   disabled={isProcessing}
                   className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent themed-input"
                 />
-                {isProcessing && <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin rounded-full h-5 w-5 border-b-2 border-accent" />}
+                {isProcessing && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin rounded-full h-5 w-5 border-b-2 border-accent" />
+                )}
               </div>
-              <button onClick={() => setIsHelpModalOpen(true)} className="p-2 rounded-full text-secondary-text hover:text-primary-text hover:bg-secondary-bg focus:outline-none focus:ring-2 focus:ring-accent" aria-label="Help">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 115.82 1c-.44.86-1.26 1.3-1.91 1.63-.51.26-.75.52-.75.87v.5" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+              <button
+                onClick={() => setIsHelpModalOpen(true)}
+                className="p-2 rounded-full text-secondary-text hover:text-primary-text hover:bg-secondary-bg focus:outline-none focus:ring-2 focus:ring-accent"
+                aria-label="Help"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  viewBox="0 0 24 24"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 115.82 1c-.44.86-1.26 1.3-1.91 1.63-.51.26-.75.52-.75.87v.5" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
               </button>
             </div>
             <div className="flex justify-center items-center mt-2 space-x-2 flex-wrap gap-y-1">
-              <button onClick={handleAddNewBookmark} className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover">Add New</button>
-              <button onClick={handleImportExportOpen} className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover">Import/Export</button>
-              <button onClick={handleRemoveDuplicates} className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover">Remove Duplicates</button>
-              {lastAction && <button onClick={resetSearch} className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover">Clear Search</button>}
-              <button onClick={() => setIsOptionsOpen(true)} className="px-3 py-1 bg-secondary-bg text-primary-text text-sm rounded-md border border-border hover:bg-border" aria-label="Options">⚙</button>
+              <button
+                onClick={handleAddNewBookmark}
+                className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover"
+              >
+                Add New
+              </button>
+              <button
+                onClick={handleImportExportOpen}
+                className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover"
+              >
+                Import/Export
+              </button>
+              <button
+                onClick={handleRemoveDuplicates}
+                className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover"
+              >
+                Remove Duplicates
+              </button>
+              {lastAction && (
+                <button
+                  onClick={resetSearch}
+                  className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover"
+                >
+                  Clear Search
+                </button>
+              )}
+              <button
+                onClick={() => setIsOptionsOpen(true)}
+                className="px-3 py-1 bg-secondary-bg text-primary-text text-sm rounded-md border border-border hover:bg-border"
+                aria-label="Options"
+              >
+                ⚙
+              </button>
             </div>
             <div className="text-center text-xs text-secondary-text mt-1">
-              Click to select, <kbd className="font-sans px-1 py-0.5 border border-border bg-secondary-bg rounded">Shift</kbd>+click to open, double-click or <kbd className="font-sans px-1 py-0.5 border border-border bg-secondary-bg rounded">E</kbd> to edit.
+              Click to select,{" "}
+              <kbd className="font-sans px-1 py-0.5 border border-border bg-secondary-bg rounded">
+                Shift
+              </kbd>
+              +click to open, double-click or{" "}
+              <kbd className="font-sans px-1 py-0.5 border border-border bg-secondary-bg rounded">
+                E
+              </kbd>{" "}
+              to edit.
             </div>
           </div>
         </div>
       </header>
 
-      <main className={`flex-1 overflow-hidden flex flex-col transition-all duration-300 ${isHeaderVisible ? "pt-28" : "pt-4"}`} role="main">
+      <main
+        className={`flex-1 overflow-hidden flex flex-col transition-all duration-300 ${isHeaderVisible ? "pt-28" : "pt-4"}`}
+        role="main"
+      >
         <div className="flex-1 min-h-0 max-w-4xl w-full mx-auto px-4 flex flex-col">
           {/* #53: deterministic filter controls — work with no LLM configured */}
           <FilterBar
@@ -794,7 +1110,10 @@ const BookmarkApp = () => {
 
           {/* Agent plan display */}
           {lastAction && (
-            <div className={`mb-4 p-3 rounded-lg ${lastAction.action === "error" ? "bg-red-50 border border-red-200" : "bg-green-50 border border-green-200"}`} role="status">
+            <div
+              className={`mb-4 p-3 rounded-lg ${lastAction.action === "error" ? "bg-red-50 border border-red-200" : "bg-green-50 border border-green-200"}`}
+              role="status"
+            >
               {Array.isArray(lastAction) ? (
                 <>
                   <p className="text-sm text-green-800 font-bold">Agent Plan:</p>
@@ -803,14 +1122,22 @@ const BookmarkApp = () => {
                       <li key={idx} className="text-sm text-green-800">
                         <strong>{step.action}</strong>
                         {step.parameters && Object.keys(step.parameters).length > 0 && (
-                          <span className="ml-2 font-mono text-xs text-green-600">({Object.entries(step.parameters).map(([k, v]) => `${k}: "${v}"`).join(", ")})</span>
+                          <span className="ml-2 font-mono text-xs text-green-600">
+                            (
+                            {Object.entries(step.parameters)
+                              .map(([k, v]) => `${k}: "${v}"`)
+                              .join(", ")}
+                            )
+                          </span>
                         )}
                       </li>
                     ))}
                   </ol>
                 </>
               ) : (
-                <p className={`text-sm ${lastAction.action === "error" ? "text-red-800" : "text-green-800"}`}>
+                <p
+                  className={`text-sm ${lastAction.action === "error" ? "text-red-800" : "text-green-800"}`}
+                >
                   <strong>Agent Action:</strong> {lastAction.action}
                 </p>
               )}
@@ -825,7 +1152,8 @@ const BookmarkApp = () => {
                 displayedBookmarks.length === bookmarks.length
                   ? `${bookmarks.length} bookmarks`
                   : `${displayedBookmarks.length} of ${bookmarks.length} bookmarks`;
-              if (multiSelectedBookmarkIds.length > 0) return `${multiSelectedBookmarkIds.length} selected | ${shown}`;
+              if (multiSelectedBookmarkIds.length > 0)
+                return `${multiSelectedBookmarkIds.length} selected | ${shown}`;
               if (selectedBookmarkId) return `1 selected | ${shown}`;
               return shown;
             })()}
@@ -833,23 +1161,23 @@ const BookmarkApp = () => {
 
           {/* ARCH-10: Empty state + PERF-06: virtualized list — flex-1 fills remaining viewport height */}
           <div className="flex-1 min-h-0 pb-4">
-          <BookmarkList
-            bookmarks={displayedBookmarks}
-            selectedBookmarkId={selectedBookmarkId}
-            multiSelectedBookmarkIds={multiSelectedBookmarkIds}
-            bookmarksToDelete={bookmarksToDelete}
-            onBookmarkClick={handleBookmarkClick}
-            onBookmarkDoubleClick={handleBookmarkDoubleClick}
-            onBookmarkKeyDown={handleBookmarkKeyDown}
-            isLoading={isLoading}
-            bookmarksTotal={bookmarks.length}
-            searchActive={!!debouncedSearchQuery || hasActiveFilters(effectiveFilters)}
-            lastAction={lastAction}
-            searchQuery={debouncedSearchQuery || debouncedFilterText}
-            onClearSearch={clearAllFilters}
-            onAddNew={handleAddNewBookmark}
-            onImport={handleImportExportOpen}
-          />
+            <BookmarkList
+              bookmarks={displayedBookmarks}
+              selectedBookmarkId={selectedBookmarkId}
+              multiSelectedBookmarkIds={multiSelectedBookmarkIds}
+              bookmarksToDelete={bookmarksToDelete}
+              onBookmarkClick={handleBookmarkClick}
+              onBookmarkDoubleClick={handleBookmarkDoubleClick}
+              onBookmarkKeyDown={handleBookmarkKeyDown}
+              isLoading={isLoading}
+              bookmarksTotal={bookmarks.length}
+              searchActive={!!debouncedSearchQuery || hasActiveFilters(effectiveFilters)}
+              lastAction={lastAction}
+              searchQuery={debouncedSearchQuery || debouncedFilterText}
+              onClearSearch={clearAllFilters}
+              onAddNew={handleAddNewBookmark}
+              onImport={handleImportExportOpen}
+            />
           </div>
         </div>
       </main>
@@ -861,10 +1189,17 @@ const BookmarkApp = () => {
           <OptionsModal
             provider={runtimeProvider}
             providerOptions={runtimeProviderOptions[runtimeProvider] || {}}
-            onChange={(val) => { const v = (val || "").toString().toLowerCase(); setRuntimeProvider(v); saveLLMSetting("bm_runtime_llm_provider", v); }}
+            onChange={(val) => {
+              const v = (val || "").toString().toLowerCase();
+              setRuntimeProvider(v);
+              saveLLMSetting("bm_runtime_llm_provider", v);
+            }}
             onChangeOptions={(opts) => {
               setRuntimeProviderOptions((prev) => {
-                const next = { ...(prev || {}), [runtimeProvider]: { ...(prev?.[runtimeProvider] || {}), ...(opts || {}) } };
+                const next = {
+                  ...(prev || {}),
+                  [runtimeProvider]: { ...(prev?.[runtimeProvider] || {}), ...(opts || {}) },
+                };
                 persistProviderOptions(next);
                 return next;
               });
@@ -881,7 +1216,11 @@ const BookmarkApp = () => {
           />
         )}
         {isMessageModalOpen && (
-          <MessageModal message={messageModalContent.message} type={messageModalContent.type} onClose={() => setIsMessageModalOpen(false)} />
+          <MessageModal
+            message={messageModalContent.message}
+            type={messageModalContent.type}
+            onClose={() => setIsMessageModalOpen(false)}
+          />
         )}
         {isModalOpen && (
           <BookmarkForm
@@ -895,7 +1234,10 @@ const BookmarkApp = () => {
           />
         )}
         {isImportExportModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => e.target === e.currentTarget && handleImportExportClose()}>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={(e) => e.target === e.currentTarget && handleImportExportClose()}
+          >
             <div className="bg-primary-bg rounded-lg shadow-xl max-w-lg w-full m-4 max-h-[90vh] overflow-y-auto">
               <ImportExportContent
                 bookmarks={bookmarks}
@@ -908,7 +1250,10 @@ const BookmarkApp = () => {
           </div>
         )}
         {isDeleteConfirmModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => e.target === e.currentTarget && !isDeleting && handleCancelDelete()}>
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={(e) => e.target === e.currentTarget && !isDeleting && handleCancelDelete()}
+          >
             <div className="bg-primary-bg rounded-lg shadow-xl max-w-md w-full m-4">
               <DeleteConfirmModal
                 message={`Are you sure you want to delete ${bookmarksToDelete.length} bookmark(s)?`}

@@ -38,12 +38,7 @@ const HelpModal = ({ onClose }) => {
               className="text-secondary-text hover:text-primary-text transition-colors"
               aria-label="Close help"
             >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -59,24 +54,20 @@ const HelpModal = ({ onClose }) => {
                 Natural Language Search
               </h3>
               <p>
-                The main search bar is powered by an AI agent. Type commands in
-                plain English to find, sort, and manage your bookmarks. Try things
-                like: "options", "find github", "find tags: react then sort by
-                rating descending", "show 3 stars or more", "filter rating &gt;= 4
-                then sort by title asc", or "remove duplicates".
+                The main search bar is powered by an AI agent. Type commands in plain English to
+                find, sort, and manage your bookmarks. Try things like: "options", "find github",
+                "find tags: react then sort by rating descending", "show 3 stars or more", "filter
+                rating &gt;= 4 then sort by title asc", or "remove duplicates".
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-2 text-primary-text">
-                Keyboard Shortcuts
-              </h3>
+              <h3 className="text-lg font-semibold mb-2 text-primary-text">Keyboard Shortcuts</h3>
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>
                   <strong>Click</strong> selects a bookmark.
                 </li>
                 <li>
-                  <strong>Cmd/Ctrl+Click</strong> toggles multi-select for a
-                  bookmark.
+                  <strong>Cmd/Ctrl+Click</strong> toggles multi-select for a bookmark.
                 </li>
                 <li>
                   <strong>Shift+Click</strong> or press{" "}
@@ -103,24 +94,20 @@ const HelpModal = ({ onClose }) => {
                   <kbd className="font-sans px-1.5 py-0.5 border border-border bg-secondary-bg rounded">
                     D
                   </kbd>{" "}
-                  or <strong>Cmd/Ctrl+D</strong> to delete selected (opens
-                  confirmation).
+                  or <strong>Cmd/Ctrl+D</strong> to delete selected (opens confirmation).
                 </li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-2 text-primary-text">
-                Tips
-              </h3>
+              <h3 className="text-lg font-semibold mb-2 text-primary-text">Tips</h3>
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>
-                  Use the <strong>Remove Duplicates</strong> button (or type
-                  "remove duplicates" into the search) to find and delete
-                  duplicates by title+URL.
+                  Use the <strong>Remove Duplicates</strong> button (or type "remove duplicates"
+                  into the search) to find and delete duplicates by title+URL.
                 </li>
                 <li>
-                  <strong>Import/Export</strong> lets you back up or restore
-                  bookmarks from JSON/HTML.
+                  <strong>Import/Export</strong> lets you back up or restore bookmarks from
+                  JSON/HTML.
                 </li>
               </ul>
             </div>

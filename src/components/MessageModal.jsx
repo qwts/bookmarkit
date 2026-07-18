@@ -16,17 +16,9 @@ const MessageModal = ({ message, type = "info", onClose }) => {
   }, [onClose]);
 
   const bgColor =
-    type === "success"
-      ? "bg-green-100"
-      : type === "error"
-        ? "bg-red-100"
-        : "bg-blue-50";
+    type === "success" ? "bg-green-100" : type === "error" ? "bg-red-100" : "bg-blue-50";
   const textColor =
-    type === "success"
-      ? "text-green-800"
-      : type === "error"
-        ? "text-red-800"
-        : "text-blue-800";
+    type === "success" ? "text-green-800" : type === "error" ? "text-red-800" : "text-blue-800";
   const borderColor =
     type === "success"
       ? "border-green-300"
@@ -50,11 +42,7 @@ const MessageModal = ({ message, type = "info", onClose }) => {
         {/* A11Y-04: role="alert" for errors, role="status" for success/info */}
         <div role={type === "error" ? "alert" : "status"}>
           <h3 id="message-modal-title" className={`text-xl font-semibold mb-4 ${textColor}`}>
-            {type === "success"
-              ? "Success!"
-              : type === "error"
-                ? "Error!"
-                : "Information"}
+            {type === "success" ? "Success!" : type === "error" ? "Error!" : "Information"}
           </h3>
           <p className={`${textColor} mb-6`}>{message}</p>
         </div>

@@ -14,11 +14,9 @@ export function createChromeBookmarksStore() {
 
   const ensureRootFolder = async () => {
     const tree = await chrome.bookmarks.getTree();
-    const bar = tree[0].children.find(
-      (n) => n.id === "1" || n.title === "Bookmarks bar",
-    );
+    const bar = tree[0].children.find((n) => n.id === "1" || n.title === "Bookmarks bar");
     const existing = (bar.children || []).find(
-      (n) => n.title === ROOT_FOLDER_TITLE && n.url === undefined,
+      (n) => n.title === ROOT_FOLDER_TITLE && n.url === undefined
     );
     if (existing) return existing.id;
     const created = await chrome.bookmarks.create({
@@ -41,8 +39,7 @@ export function createChromeBookmarksStore() {
     for (const seg of segments) {
       const children = await chrome.bookmarks.getChildren(parentId);
       let folder = (children || []).find((n) => !n.url && n.title === seg);
-      if (!folder)
-        folder = await chrome.bookmarks.create({ parentId, title: seg });
+      if (!folder) folder = await chrome.bookmarks.create({ parentId, title: seg });
       parentId = folder.id;
     }
     return parentId;
@@ -177,7 +174,7 @@ export function createChromeBookmarksStore() {
     },
     async create(bookmark) {
       let parentId = await ensureFolderPath(
-        typeof bookmark.folderId === "string" ? bookmark.folderId : "",
+        typeof bookmark.folderId === "string" ? bookmark.folderId : ""
       );
       const node = await chrome.bookmarks.create({
         parentId,
@@ -187,9 +184,7 @@ export function createChromeBookmarksStore() {
       await notify();
       // Compute path by walking up to root (optional) or reuse provided path for performance
       const folderPath =
-        (typeof bookmark.folderId === "string"
-          ? bookmark.folderId.trim()
-          : "") || "";
+        (typeof bookmark.folderId === "string" ? bookmark.folderId.trim() : "") || "";
       return toBookmark(node, folderPath);
     },
     async update(id, patch) {
@@ -201,8 +196,7 @@ export function createChromeBookmarksStore() {
       }
       // Handle moving to a folder when folderId (treated as a folder path label) is provided
       if (Object.prototype.hasOwnProperty.call(patch, "folderId")) {
-        const folderPath =
-          typeof patch.folderId === "string" ? patch.folderId.trim() : "";
+        const folderPath = typeof patch.folderId === "string" ? patch.folderId.trim() : "";
         try {
           if (folderPath) {
             const parentId = await ensureFolderPath(folderPath);
@@ -225,9 +219,7 @@ export function createChromeBookmarksStore() {
     },
     async removeMany(ids = []) {
       // Delete in parallel; ignore per-item failures, then notify once
-      await Promise.all(
-        (ids || []).map((id) => chrome.bookmarks.remove(id).catch(() => {})),
-      );
+      await Promise.all((ids || []).map((id) => chrome.bookmarks.remove(id).catch(() => {})));
       await notify();
     },
     async bulkReplace(bookmarks) {

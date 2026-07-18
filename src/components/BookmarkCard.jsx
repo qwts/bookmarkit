@@ -76,7 +76,8 @@ const BookmarkCard = React.memo(function BookmarkCard({
           )}
           {bookmark.rating > 0 && (
             <div className="text-xs text-yellow-400 mt-1">
-              {"★".repeat(bookmark.rating)}{"☆".repeat(5 - bookmark.rating)}
+              {"★".repeat(bookmark.rating)}
+              {"☆".repeat(5 - bookmark.rating)}
             </div>
           )}
           {bookmark.tags?.length > 0 && (

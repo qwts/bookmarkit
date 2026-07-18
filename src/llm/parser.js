@@ -8,26 +8,39 @@
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const KNOWN_ACTIONS = new Set([
-  'searchBookmarks', 'showAllBookmarks', 'resetSearch',
-  'importBookmarks', 'exportBookmarks', 'removeDuplicates', 'help',
-  'findIncludes', 'findStartsWith', 'findWithTags',
-  'filterByRating', 'sortBookmarks',
-  'limitResults', 'limitFirst', 'limitLast',
-  'reorder', 'reorderAscending', 'reorderDescending', 'persistSortedOrder',
+  "searchBookmarks",
+  "showAllBookmarks",
+  "resetSearch",
+  "importBookmarks",
+  "exportBookmarks",
+  "removeDuplicates",
+  "help",
+  "findIncludes",
+  "findStartsWith",
+  "findWithTags",
+  "filterByRating",
+  "sortBookmarks",
+  "limitResults",
+  "limitFirst",
+  "limitLast",
+  "reorder",
+  "reorderAscending",
+  "reorderDescending",
+  "persistSortedOrder",
 ]);
 
-const FIELD_VALUES      = new Set(['title', 'url', 'description', 'tags']);
-const SORT_BY_VALUES    = new Set(['title', 'rating', 'url', 'folder', 'createdAt', 'updatedAt']);
-const ORDER_VALUES      = new Set(['asc', 'desc']);
-const DIRECTION_VALUES  = new Set(['first', 'last']);
-const SCOPE_VALUES      = new Set(['current', 'all']);
-const COMPARATOR_VALUES = new Set(['gte', 'lte', 'eq']);
+const FIELD_VALUES = new Set(["title", "url", "description", "tags"]);
+const SORT_BY_VALUES = new Set(["title", "rating", "url", "folder", "createdAt", "updatedAt"]);
+const ORDER_VALUES = new Set(["asc", "desc"]);
+const DIRECTION_VALUES = new Set(["first", "last"]);
+const SCOPE_VALUES = new Set(["current", "all"]);
+const COMPARATOR_VALUES = new Set(["gte", "lte", "eq"]);
 
 // ─── Utility coercions ────────────────────────────────────────────────────────
 
 function toStringArray(val) {
   if (Array.isArray(val)) return val.map(String);
-  if (typeof val === 'string' && val.length > 0) return [val];
+  if (typeof val === "string" && val.length > 0) return [val];
   return [];
 }
 
@@ -47,30 +60,32 @@ function toFiniteNumber(val) {
 const ACTION_SCHEMAS = {
   // No-parameter actions
   showAllBookmarks: (_p) => ({ valid: true, sanitized: {}, errors: [] }),
-  resetSearch:      (_p) => ({ valid: true, sanitized: {}, errors: [] }),
-  importBookmarks:  (_p) => ({ valid: true, sanitized: {}, errors: [] }),
-  exportBookmarks:  (_p) => ({ valid: true, sanitized: {}, errors: [] }),
+  resetSearch: (_p) => ({ valid: true, sanitized: {}, errors: [] }),
+  importBookmarks: (_p) => ({ valid: true, sanitized: {}, errors: [] }),
+  exportBookmarks: (_p) => ({ valid: true, sanitized: {}, errors: [] }),
   removeDuplicates: (_p) => ({ valid: true, sanitized: {}, errors: [] }),
-  help:             (_p) => ({ valid: true, sanitized: {}, errors: [] }),
+  help: (_p) => ({ valid: true, sanitized: {}, errors: [] }),
 
   searchBookmarks(p) {
-    const searchTerm = p?.searchTerm != null ? String(p.searchTerm) : '';
+    const searchTerm = p?.searchTerm != null ? String(p.searchTerm) : "";
     return { valid: true, sanitized: { searchTerm }, errors: [] };
   },
 
   findIncludes(p) {
     const errors = [];
-    const field = FIELD_VALUES.has(p?.field) ? p.field : 'title';
-    if (!FIELD_VALUES.has(p?.field)) errors.push(`Unknown field "${p?.field}", defaulting to "title"`);
-    const value = p?.value != null ? String(p.value) : '';
+    const field = FIELD_VALUES.has(p?.field) ? p.field : "title";
+    if (!FIELD_VALUES.has(p?.field))
+      errors.push(`Unknown field "${p?.field}", defaulting to "title"`);
+    const value = p?.value != null ? String(p.value) : "";
     return { valid: true, sanitized: { field, value }, errors };
   },
 
   findStartsWith(p) {
     const errors = [];
-    const field = FIELD_VALUES.has(p?.field) ? p.field : 'title';
-    if (!FIELD_VALUES.has(p?.field)) errors.push(`Unknown field "${p?.field}", defaulting to "title"`);
-    const value = p?.value != null ? String(p.value) : '';
+    const field = FIELD_VALUES.has(p?.field) ? p.field : "title";
+    if (!FIELD_VALUES.has(p?.field))
+      errors.push(`Unknown field "${p?.field}", defaulting to "title"`);
+    const value = p?.value != null ? String(p.value) : "";
     return { valid: true, sanitized: { field, value }, errors };
   },
 
@@ -111,27 +126,37 @@ const ACTION_SCHEMAS = {
 
   sortBookmarks(p) {
     const errors = [];
-    const sortBy = SORT_BY_VALUES.has(p?.sortBy) ? p.sortBy : 'title';
-    const order  = ORDER_VALUES.has(p?.order)    ? p.order  : 'asc';
-    if (!SORT_BY_VALUES.has(p?.sortBy)) errors.push(`Unknown sortBy "${p?.sortBy}", defaulting to "title"`);
-    if (!ORDER_VALUES.has(p?.order))    errors.push(`Unknown order "${p?.order}", defaulting to "asc"`);
+    const sortBy = SORT_BY_VALUES.has(p?.sortBy) ? p.sortBy : "title";
+    const order = ORDER_VALUES.has(p?.order) ? p.order : "asc";
+    if (!SORT_BY_VALUES.has(p?.sortBy))
+      errors.push(`Unknown sortBy "${p?.sortBy}", defaulting to "title"`);
+    if (!ORDER_VALUES.has(p?.order))
+      errors.push(`Unknown order "${p?.order}", defaulting to "asc"`);
     return { valid: true, sanitized: { sortBy, order }, errors };
   },
 
   limitResults(p) {
     const count = toPositiveInt(p?.count);
     if (count === undefined) {
-      return { valid: false, sanitized: {}, errors: [`count "${p?.count}" is not a positive integer`] };
+      return {
+        valid: false,
+        sanitized: {},
+        errors: [`count "${p?.count}" is not a positive integer`],
+      };
     }
-    const direction = DIRECTION_VALUES.has(p?.direction) ? p.direction : 'first';
-    const scope     = SCOPE_VALUES.has(p?.scope)         ? p.scope     : 'current';
+    const direction = DIRECTION_VALUES.has(p?.direction) ? p.direction : "first";
+    const scope = SCOPE_VALUES.has(p?.scope) ? p.scope : "current";
     return { valid: true, sanitized: { count, direction, scope }, errors: [] };
   },
 
   limitFirst(p) {
     const count = toPositiveInt(p?.count);
     if (count === undefined) {
-      return { valid: false, sanitized: {}, errors: [`count "${p?.count}" is not a positive integer`] };
+      return {
+        valid: false,
+        sanitized: {},
+        errors: [`count "${p?.count}" is not a positive integer`],
+      };
     }
     return { valid: true, sanitized: { count }, errors: [] };
   },
@@ -139,17 +164,23 @@ const ACTION_SCHEMAS = {
   limitLast(p) {
     const count = toPositiveInt(p?.count);
     if (count === undefined) {
-      return { valid: false, sanitized: {}, errors: [`count "${p?.count}" is not a positive integer`] };
+      return {
+        valid: false,
+        sanitized: {},
+        errors: [`count "${p?.count}" is not a positive integer`],
+      };
     }
     return { valid: true, sanitized: { count }, errors: [] };
   },
 
   reorder(p) {
     const errors = [];
-    const sortBy = SORT_BY_VALUES.has(p?.sortBy) ? p.sortBy : 'title';
-    const order  = ORDER_VALUES.has(p?.order)    ? p.order  : 'asc';
-    if (!SORT_BY_VALUES.has(p?.sortBy)) errors.push(`Unknown sortBy "${p?.sortBy}", defaulting to "title"`);
-    if (!ORDER_VALUES.has(p?.order))    errors.push(`Unknown order "${p?.order}", defaulting to "asc"`);
+    const sortBy = SORT_BY_VALUES.has(p?.sortBy) ? p.sortBy : "title";
+    const order = ORDER_VALUES.has(p?.order) ? p.order : "asc";
+    if (!SORT_BY_VALUES.has(p?.sortBy))
+      errors.push(`Unknown sortBy "${p?.sortBy}", defaulting to "title"`);
+    if (!ORDER_VALUES.has(p?.order))
+      errors.push(`Unknown order "${p?.order}", defaulting to "asc"`);
     return { valid: true, sanitized: { sortBy, order }, errors };
   },
 
@@ -172,7 +203,7 @@ const ACTION_SCHEMAS = {
       if (SORT_BY_VALUES.has(p.sortBy)) sanitized.sortBy = p.sortBy;
       else errors.push(`Unknown sortBy "${p.sortBy}", ignored`);
     }
-    const order = ORDER_VALUES.has(p?.order) ? p.order : 'asc';
+    const order = ORDER_VALUES.has(p?.order) ? p.order : "asc";
     if (p?.order != null && !ORDER_VALUES.has(p.order)) {
       errors.push(`Unknown order "${p.order}", defaulting to "asc"`);
     }
@@ -186,11 +217,11 @@ const ACTION_SCHEMAS = {
 // Used as a fallback when the provider returns an API envelope instead of plain text.
 
 const PROVIDER_UNWRAPPERS = {
-  gemini:   (raw) => raw?.candidates?.[0]?.content?.parts?.[0]?.text   || '',
-  openai:   (raw) => raw?.choices?.[0]?.message?.content                || '',
-  grok:     (raw) => raw?.choices?.[0]?.message?.content                || '',
-  lmstudio: (raw) => raw?.choices?.[0]?.message?.content                || '',
-  ollama:   (raw) => raw?.response                                       || '',
+  gemini: (raw) => raw?.candidates?.[0]?.content?.parts?.[0]?.text || "",
+  openai: (raw) => raw?.choices?.[0]?.message?.content || "",
+  grok: (raw) => raw?.choices?.[0]?.message?.content || "",
+  lmstudio: (raw) => raw?.choices?.[0]?.message?.content || "",
+  ollama: (raw) => raw?.response || "",
 };
 
 // ─── JSON extraction ──────────────────────────────────────────────────────────
@@ -202,9 +233,10 @@ function extractJsonFromText(text) {
   if (fence) return fence[1].trim();
   const trimmed = text.trim();
   if (
-    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
-    (trimmed.startsWith('[') && trimmed.endsWith(']'))
-  ) return trimmed;
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  )
+    return trimmed;
   return null;
 }
 
@@ -247,7 +279,7 @@ export function parseAgentResponse(responseText, providerName) {
   try {
     parsed = JSON.parse(extracted || responseText);
   } catch {
-    console.warn('[parser] Failed to parse LLM response as JSON:', responseText?.slice(0, 200));
+    console.warn("[parser] Failed to parse LLM response as JSON:", responseText?.slice(0, 200));
     return [];
   }
 
@@ -257,8 +289,8 @@ export function parseAgentResponse(responseText, providerName) {
   // Step 5: Validate and sanitize each step (ARCH-01, ARCH-03)
   const validSteps = [];
   for (const step of stepsArray) {
-    if (!step || typeof step !== 'object' || typeof step.action !== 'string') {
-      console.warn('[parser] Dropping step — missing or non-string action:', step);
+    if (!step || typeof step !== "object" || typeof step.action !== "string") {
+      console.warn("[parser] Dropping step — missing or non-string action:", step);
       continue;
     }
 
@@ -270,13 +302,16 @@ export function parseAgentResponse(responseText, providerName) {
     }
 
     // parameters must be undefined, null, or a plain object
-    if (parameters !== undefined && parameters !== null && typeof parameters !== 'object') {
-      console.warn(`[parser] Dropping step "${action}" — parameters must be an object, got ${typeof parameters}:`, parameters);
+    if (parameters !== undefined && parameters !== null && typeof parameters !== "object") {
+      console.warn(
+        `[parser] Dropping step "${action}" — parameters must be an object, got ${typeof parameters}:`,
+        parameters
+      );
       continue;
     }
 
     const sanitizedPriority = priority !== undefined ? Number(priority) : undefined;
-    const params = (parameters && typeof parameters === 'object') ? parameters : {};
+    const params = parameters && typeof parameters === "object" ? parameters : {};
 
     const validator = ACTION_SCHEMAS[action];
     if (validator) {

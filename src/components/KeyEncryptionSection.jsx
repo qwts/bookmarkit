@@ -17,8 +17,14 @@ const KeyEncryptionSection = ({
 
   const submitEnable = async () => {
     setError("");
-    if (passInput.length < 6) { setError("Use a passphrase of at least 6 characters."); return; }
-    if (passInput !== passConfirm) { setError("Passphrases don't match."); return; }
+    if (passInput.length < 6) {
+      setError("Use a passphrase of at least 6 characters.");
+      return;
+    }
+    if (passInput !== passConfirm) {
+      setError("Passphrases don't match.");
+      return;
+    }
     setBusy(true);
     try {
       await onEnableEncryption?.(passInput);
@@ -63,7 +69,9 @@ const KeyEncryptionSection = ({
             placeholder="Confirm passphrase"
             value={passConfirm}
             onChange={(e) => setPassConfirm(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") submitEnable(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submitEnable();
+            }}
           />
           {error && <p className="text-xs text-red-600">{error}</p>}
           <button
@@ -87,7 +95,9 @@ const KeyEncryptionSection = ({
             placeholder="Passphrase"
             value={unlockInput}
             onChange={(e) => setUnlockInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") submitUnlock(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submitUnlock();
+            }}
           />
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex items-center gap-3">

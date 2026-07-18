@@ -92,7 +92,9 @@ describe("mergeAgentPlan (#20)", () => {
   it("stays bounded to one step per action across repeated same-type queries", () => {
     let plan = [];
     for (const term of ["a", "b", "c", "d"]) {
-      plan = mergeAgentPlan(plan, [{ action: "searchBookmarks", parameters: { searchTerm: term } }]);
+      plan = mergeAgentPlan(plan, [
+        { action: "searchBookmarks", parameters: { searchTerm: term } },
+      ]);
     }
     expect(plan).toHaveLength(1);
     expect(plan[0].parameters.searchTerm).toBe("d");

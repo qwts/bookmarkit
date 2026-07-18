@@ -10,22 +10,22 @@
  *   Return the list of available model identifiers for this provider.
  */
 
-import { createGeminiLLM } from './providers/geminiLLM.js';
-import { createOpenAILLM } from './providers/openaiLLM.js';
-import { createGrokLLM } from './providers/grokLLM.js';
-import { createOllamaLLM } from './providers/ollamaLLM.js';
-import { createLMStudioLLM } from './providers/lmstudioLLM.js';
+import { createGeminiLLM } from "./providers/geminiLLM.js";
+import { createOpenAILLM } from "./providers/openaiLLM.js";
+import { createGrokLLM } from "./providers/grokLLM.js";
+import { createOllamaLLM } from "./providers/ollamaLLM.js";
+import { createLMStudioLLM } from "./providers/lmstudioLLM.js";
 
 export const LLM_PROVIDERS = {
-  GEMINI: 'gemini',
-  OPENAI: 'openai', // ChatGPT
-  GROK: 'grok',
-  OLLAMA: 'ollama',
-  LMSTUDIO: 'lmstudio',
+  GEMINI: "gemini",
+  OPENAI: "openai", // ChatGPT
+  GROK: "grok",
+  OLLAMA: "ollama",
+  LMSTUDIO: "lmstudio",
 };
 
 export function createLLM(provider = LLM_PROVIDERS.GEMINI, options = {}) {
-  const p = (provider || '').toString().toLowerCase();
+  const p = (provider || "").toString().toLowerCase();
   switch (p) {
     case LLM_PROVIDERS.OPENAI:
       return createOpenAILLM(options);

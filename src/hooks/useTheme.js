@@ -13,20 +13,25 @@ const DEFAULT_THEME = {
 };
 
 const REQUIRED_THEME_KEYS = [
-  "bgPrimary", "bgSecondary", "textPrimary", "textSecondary",
-  "border", "accent", "accentHover",
+  "bgPrimary",
+  "bgSecondary",
+  "textPrimary",
+  "textSecondary",
+  "border",
+  "accent",
+  "accentHover",
 ];
 
 function applyThemeToDom(theme) {
   const t = theme || DEFAULT_THEME;
   const root = document.documentElement;
-  root.style.setProperty("--bg-primary",     t.bgPrimary     || "#ffffff");
-  root.style.setProperty("--bg-secondary",   t.bgSecondary   || "#f9fafb");
-  root.style.setProperty("--text-primary",   t.textPrimary   || "#111827");
+  root.style.setProperty("--bg-primary", t.bgPrimary || "#ffffff");
+  root.style.setProperty("--bg-secondary", t.bgSecondary || "#f9fafb");
+  root.style.setProperty("--text-primary", t.textPrimary || "#111827");
   root.style.setProperty("--text-secondary", t.textSecondary || "#6b7280");
-  root.style.setProperty("--border",         t.border        || "#d1d5db");
-  root.style.setProperty("--accent",         t.accent        || "#3b82f6");
-  root.style.setProperty("--accent-hover",   t.accentHover   || "#2563eb");
+  root.style.setProperty("--border", t.border || "#d1d5db");
+  root.style.setProperty("--accent", t.accent || "#3b82f6");
+  root.style.setProperty("--accent-hover", t.accentHover || "#2563eb");
 }
 
 async function saveThemeToPersistence(key, value) {
@@ -97,7 +102,10 @@ export function useTheme() {
       }
       const unknownKeys = Object.keys(themeData).filter((k) => !REQUIRED_THEME_KEYS.includes(k));
       if (unknownKeys.length > 0) {
-        showMessage(`Theme contains unknown properties: ${unknownKeys.join(", ")}. Only the 7 color properties are allowed.`, "error");
+        showMessage(
+          `Theme contains unknown properties: ${unknownKeys.join(", ")}. Only the 7 color properties are allowed.`,
+          "error"
+        );
         return;
       }
       const missing = REQUIRED_THEME_KEYS.filter((key) => !themeData[key]);
@@ -111,7 +119,10 @@ export function useTheme() {
       };
       const invalidKeys = REQUIRED_THEME_KEYS.filter((k) => !isSafeColor(themeData[k]));
       if (invalidKeys.length > 0) {
-        showMessage("Theme contains invalid color values. Use valid CSS colors (e.g., #rrggbb, rgb(), hsl(), named colors).", "error");
+        showMessage(
+          "Theme contains invalid color values. Use valid CSS colors (e.g., #rrggbb, rgb(), hsl(), named colors).",
+          "error"
+        );
         return;
       }
       const themeName = file.name.replace(/\.(json|yaml|yml)$/i, "");

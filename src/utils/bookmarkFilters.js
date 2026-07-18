@@ -10,7 +10,7 @@ export const searchBookmarks = (searchTerm, list) => {
       (b.title?.toLowerCase() || "").includes(lower) ||
       (b.url?.toLowerCase() || "").includes(lower) ||
       (b.description?.toLowerCase() || "").includes(lower) ||
-      (b.tags && b.tags.some((tag) => tag.toLowerCase().includes(lower))),
+      (b.tags && b.tags.some((tag) => tag.toLowerCase().includes(lower)))
   );
 };
 
@@ -155,9 +155,15 @@ export const applyAgentPlan = (plan, list) => {
     const { action, parameters = {} } = step;
     if (
       [
-        "importBookmarks", "exportBookmarks", "resetSearch",
-        "showAllBookmarks", "removeDuplicates", "reorder",
-        "reorderAscending", "reorderDescending", "persistSortedOrder",
+        "importBookmarks",
+        "exportBookmarks",
+        "resetSearch",
+        "showAllBookmarks",
+        "removeDuplicates",
+        "reorder",
+        "reorderAscending",
+        "reorderDescending",
+        "persistSortedOrder",
       ].includes(action)
     )
       continue;
@@ -166,22 +172,42 @@ export const applyAgentPlan = (plan, list) => {
         currentResults = searchBookmarks(parameters.searchTerm || "", currentResults);
         break;
       case "findIncludes":
-        currentResults = findIncludes(parameters.field || "title", parameters.value || "", currentResults);
+        currentResults = findIncludes(
+          parameters.field || "title",
+          parameters.value || "",
+          currentResults
+        );
         break;
       case "findStartsWith":
-        currentResults = findStartsWith(parameters.field || "title", parameters.value || "", currentResults);
+        currentResults = findStartsWith(
+          parameters.field || "title",
+          parameters.value || "",
+          currentResults
+        );
         break;
       case "findWithTags":
-        currentResults = findWithTags(parameters.includeTags || [], parameters.excludeTags || [], currentResults);
+        currentResults = findWithTags(
+          parameters.includeTags || [],
+          parameters.excludeTags || [],
+          currentResults
+        );
         break;
       case "filterByRating":
         currentResults = filterByRating(parameters || {}, currentResults);
         break;
       case "sortBookmarks":
-        currentResults = sortBookmarks(parameters.sortBy || "title", parameters.order || "asc", currentResults);
+        currentResults = sortBookmarks(
+          parameters.sortBy || "title",
+          parameters.order || "asc",
+          currentResults
+        );
         break;
       case "limitResults":
-        currentResults = limitResults(Number(parameters.count) || 0, parameters.scope === "all" ? list : currentResults, parameters.direction || "first");
+        currentResults = limitResults(
+          Number(parameters.count) || 0,
+          parameters.scope === "all" ? list : currentResults,
+          parameters.direction || "first"
+        );
         break;
       case "limitFirst":
         currentResults = limitResults(Number(parameters.count) || 0, currentResults, "first");

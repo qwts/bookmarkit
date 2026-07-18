@@ -101,10 +101,10 @@ Load either the released zip or your own `dist/` build (see **Install** above) v
 
 The extension ships two surfaces from one build:
 
-| Surface | Entry | What it is |
-|---|---|---|
+| Surface       | Entry        | What it is                                                                                                                                  |
+| ------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Toolbar popup | `popup.html` | Quick-add for the current tab: prefilled title/URL, tags, rating, folder. Detects an already-saved URL and edits it instead of duplicating. |
-| Full app | `index.html` | The complete manager (search, agent, import/export, options). Opened from the popup's "Open full app". |
+| Full app      | `index.html` | The complete manager (search, agent, import/export, options). Opened from the popup's "Open full app".                                      |
 
 Permissions requested (`public/manifest.json`):
 
@@ -120,6 +120,7 @@ Permissions requested (`public/manifest.json`):
 You can configure everything at runtime in the Options dialog (type “options” in the search bar). Settings persist per browser in localStorage.
 
 Supported providers:
+
 - Gemini
 - OpenAI (ChatGPT)
 - Grok (x.ai)
@@ -127,11 +128,13 @@ Supported providers:
 - LM Studio (local)
 
 Options per provider:
+
 - API key (remote providers)
 - Base URL (OpenAI/Grok optional; Ollama/LM Studio required, e.g., http://localhost:11434 or http://localhost:1234)
 - Model: auto‑discovery where supported, or type manually
 
 Local providers:
+
 - Ollama: install and run, pull a model (e.g., llama3.1), set base URL: http://localhost:11434
 - LM Studio: run the local server, set base URL (default is often http://localhost:1234)
 
@@ -144,46 +147,49 @@ You can set global defaults with Vite’s define. This is optional; the in‑app
 vite.config.(js|ts) example:
 
 ```js
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 // You can also read from process.env or .env files (VITE_* vars)
 export default defineConfig({
   plugins: [react()],
   define: {
-    __llm_provider__: JSON.stringify('gemini'),
+    __llm_provider__: JSON.stringify("gemini"),
     __llm_options__: JSON.stringify({
       // apiKey: process.env.VITE_GEMINI_API_KEY,
       // model: 'gemini-2.0-flash'
     }),
     __use_firebase__: JSON.stringify(false),
     __firebase_config: JSON.stringify(undefined),
-    __app_id: JSON.stringify('bookmarkit'),
-    __initial_auth_token: JSON.stringify(undefined)
-  }
-})
+    __app_id: JSON.stringify("bookmarkit"),
+    __initial_auth_token: JSON.stringify(undefined),
+  },
+});
 ```
 
-If you set __use_firebase__ to true, also provide a valid __firebase_config (see Firebase section).
+If you set **use_firebase** to true, also provide a valid __firebase_config (see Firebase section).
 
 ## Firebase (optional)
 
 The app can use Firebase (Cloud Firestore) instead of local storage.
 
 Steps:
-1) Create a Firebase project and enable Firestore
-2) Grab your web app config:
+
+1. Create a Firebase project and enable Firestore
+2. Grab your web app config:
    - apiKey, authDomain, projectId, etc.
-3) Provide it at build time:
-   - Set __use_firebase__: true
+3. Provide it at build time:
+   - Set **use_firebase**: true
    - Set __firebase_config: the JSON stringified Firebase config
-4) Rebuild and run
+4. Rebuild and run
 
 Auth:
+
 - The code exposes an optional __initial_auth_token if you want to inject an auth token at boot.
 - If you don’t provide auth, your store module may default to anonymous or local. See your store implementation for details.
 
 Data model:
+
 - Bookmarks are stored with timestamps (createdAt/updatedAt)
 - Reorder and live updates are supported via store methods
 
@@ -194,6 +200,7 @@ Data model:
   - Import expects the same: an array
 
 Bookmark JSON shape (id is optional on import):
+
 ```json
 [
   {
@@ -275,17 +282,17 @@ The agent plans actions (search, filter, sort, limit, persist reorder) and updat
 
 ## Scripts
 
-| Script | What it does |
-|---|---|
-| `npm run dev` | Sourcemapped, unminified build to `dist/`. **Not** a dev server. |
-| `npm run build` | Production build to `dist/`. |
-| `npm run build:chrome` | Production build + copies the extension files into `dist/`. |
-| `npm run preview` | Serves `dist/` over HTTP (see the caveat under Build from source). |
-| `npm run lint` | ESLint. |
-| `npm test` | Vitest suite once (`npm run test:watch` to watch). |
-| `npm run ci` | The full gate CI runs: version policy, lint, tests, extension build. |
-| `npm run changeset` | Record a changeset describing a user-facing change. |
-| `npm run package:release` | Build and package `release/bookmarkit-v<version>.zip` + checksum. |
+| Script                    | What it does                                                         |
+| ------------------------- | -------------------------------------------------------------------- |
+| `npm run dev`             | Sourcemapped, unminified build to `dist/`. **Not** a dev server.     |
+| `npm run build`           | Production build to `dist/`.                                         |
+| `npm run build:chrome`    | Production build + copies the extension files into `dist/`.          |
+| `npm run preview`         | Serves `dist/` over HTTP (see the caveat under Build from source).   |
+| `npm run lint`            | ESLint.                                                              |
+| `npm test`                | Vitest suite once (`npm run test:watch` to watch).                   |
+| `npm run ci`              | The full gate CI runs: version policy, lint, tests, extension build. |
+| `npm run changeset`       | Record a changeset describing a user-facing change.                  |
+| `npm run package:release` | Build and package `release/bookmarkit-v<version>.zip` + checksum.    |
 
 ## Releasing
 
@@ -295,7 +302,7 @@ Releases are automated; nobody tags or uploads by hand.
 2. When it merges, **Version cut** opens or refreshes a rolling
    `chore: version bookmarkit` PR that applies the pending changesets and bumps
    `package.json`, `public/manifest.json`, and `package-lock.json` together.
-3. Merging *that* PR is the release action: it tags `v<version>` and triggers **Release**, which
+3. Merging _that_ PR is the release action: it tags `v<version>` and triggers **Release**, which
    re-runs the full gate against the tag and publishes the zip + `.sha256` to a GitHub Release.
 
 `npm run check:version-policy` enforces that the three version artifacts never drift apart — a
@@ -304,6 +311,7 @@ manifest that disagrees with `package.json` would ship a build that lies about i
 ## Contributing
 
 Issues and PRs are welcome. Please:
+
 - Keep UI accessible and keyboard‑friendly
 - Avoid introducing server dependencies (this is a client‑first tool)
 - Add tests or simple repro steps where helpful

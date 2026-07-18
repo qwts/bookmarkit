@@ -1,13 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 const FOCUSABLE_SELECTORS = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
   '[tabindex]:not([tabindex="-1"])',
-].join(', ');
+].join(", ");
 
 /**
  * A11Y-02: Focus trap hook for modal dialogs.
@@ -39,7 +39,7 @@ export function useFocusTrap(containerRef, active = true) {
     }
 
     const handleKeyDown = (e) => {
-      if (e.key !== 'Tab') return;
+      if (e.key !== "Tab") return;
       if (!container) return;
 
       const focusable = Array.from(container.querySelectorAll(FOCUSABLE_SELECTORS));
@@ -63,12 +63,12 @@ export function useFocusTrap(containerRef, active = true) {
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
       // Restore focus to the element that was focused before the modal opened
-      if (previouslyFocused.current && typeof previouslyFocused.current.focus === 'function') {
+      if (previouslyFocused.current && typeof previouslyFocused.current.focus === "function") {
         previouslyFocused.current.focus();
       }
     };

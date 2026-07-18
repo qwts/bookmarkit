@@ -4,13 +4,7 @@ import { escapeHtml } from "../utils/url.js";
 // UX-03: Memoize JSON/HTML export strings and data URIs to prevent recomputing on every render.
 // UX-04: Add confirmation step before import with append vs replace option.
 
-const ImportExportContent = ({
-  bookmarks,
-  onClose,
-  onImportJson,
-  onImportHtml,
-  showMessage,
-}) => {
+const ImportExportContent = ({ bookmarks, onClose, onImportJson, onImportHtml, showMessage }) => {
   const [activeTab, setActiveTab] = useState("export");
   const [importJsonText, setImportJsonText] = useState("");
   const [importHtmlText, setImportHtmlText] = useState("");
@@ -32,12 +26,8 @@ const ImportExportContent = ({
     html += "<H1>Bookmarks</H1>\n";
     html += "<DL><p>\n";
     bms.forEach((b) => {
-      const addDate = b.createdAt
-        ? Math.floor(new Date(b.createdAt).getTime() / 1000)
-        : "";
-      const lastModified = b.updatedAt
-        ? Math.floor(new Date(b.updatedAt).getTime() / 1000)
-        : "";
+      const addDate = b.createdAt ? Math.floor(new Date(b.createdAt).getTime() / 1000) : "";
+      const lastModified = b.updatedAt ? Math.floor(new Date(b.updatedAt).getTime() / 1000) : "";
       // #12: escape all interpolated fields so a bookmark containing " < > & cannot
       // corrupt the export file or inject markup into the generated HTML.
       const icon = b.faviconUrl ? ` ICON="${escapeHtml(b.faviconUrl)}"` : "";
@@ -52,11 +42,11 @@ const ImportExportContent = ({
   // UX-03: Memoize data URIs for download links
   const jsonDataUri = useMemo(
     () => `data:application/json;charset=utf-8,${encodeURIComponent(jsonExport)}`,
-    [jsonExport],
+    [jsonExport]
   );
   const htmlDataUri = useMemo(
     () => `data:text/html;charset=utf-8,${encodeURIComponent(htmlExport)}`,
-    [htmlExport],
+    [htmlExport]
   );
 
   // UX-04: Show confirmation instead of immediately importing
@@ -115,15 +105,14 @@ const ImportExportContent = ({
 
   return (
     <div className="p-6 bg-primary-bg rounded-lg">
-      <h2 className="text-2xl font-semibold mb-6 text-primary-text">
-        Import / Export Bookmarks
-      </h2>
+      <h2 className="text-2xl font-semibold mb-6 text-primary-text">Import / Export Bookmarks</h2>
 
       {/* UX-04: Confirmation step shown instead of the normal tabs UI */}
       {pendingImport ? (
         <div className="space-y-4">
           <p className="text-primary-text">
-            This will add <strong>{pendingImport.count}</strong> bookmark{pendingImport.count !== 1 ? "s" : ""} to your collection.
+            This will add <strong>{pendingImport.count}</strong> bookmark
+            {pendingImport.count !== 1 ? "s" : ""} to your collection.
           </p>
           <div className="space-y-2">
             <label className="flex items-center space-x-2 cursor-pointer">
@@ -284,17 +273,21 @@ const ImportExportContent = ({
                       try {
                         const importedData = JSON.parse(event.target.result);
                         if (Array.isArray(importedData)) {
-                          setPendingImport({ type: "json", data: importedData, count: importedData.length });
+                          setPendingImport({
+                            type: "json",
+                            data: importedData,
+                            count: importedData.length,
+                          });
                         } else {
                           showMessage(
                             "Invalid JSON format in file. Expected an array of bookmarks.",
-                            "error",
+                            "error"
                           );
                         }
                       } catch {
                         showMessage(
                           "Error parsing JSON file. Please ensure it is valid JSON.",
-                          "error",
+                          "error"
                         );
                       }
                     };
@@ -303,9 +296,7 @@ const ImportExportContent = ({
                 }}
                 className="block w-full text-sm text-secondary-text file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-secondary-bg file:text-accent hover:file:bg-primary-bg focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               />
-              <div className="my-4 text-center text-sm text-secondary-text">
-                — OR —
-              </div>
+              <div className="my-4 text-center text-sm text-secondary-text">— OR —</div>
               <label
                 htmlFor="import-json-text"
                 className="block text-sm font-medium text-primary-text mb-2"
@@ -357,9 +348,7 @@ const ImportExportContent = ({
                 }}
                 className="block w-full text-sm text-secondary-text file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-secondary-bg file:text-accent hover:file:bg-primary-bg focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               />
-              <div className="my-4 text-center text-sm text-secondary-text">
-                — OR —
-              </div>
+              <div className="my-4 text-center text-sm text-secondary-text">— OR —</div>
               <label
                 htmlFor="import-html-text"
                 className="block text-sm font-medium text-primary-text mb-2"
