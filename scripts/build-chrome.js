@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 
 const distDir = path.resolve(__dirname, "../dist");
 const publicDir = path.resolve(__dirname, "../public");
+const rootDir = path.resolve(__dirname, "..");
 
 // #51: popup.html is no longer copied from public/ — it's a real Vite entry point now
 // (built to dist/popup.html with hashed assets). Copying a placeholder over it here
@@ -19,4 +20,11 @@ const publicDir = path.resolve(__dirname, "../public");
     fs.copyFileSync(src, dest);
     console.log(`Copied ${file} to dist.`);
   }
+});
+
+// Legal notices belong in every distributed extension archive, not only in
+// the source repository.
+["LICENSE", "THIRD-PARTY-NOTICES.md"].forEach((file) => {
+  fs.copyFileSync(path.join(rootDir, file), path.join(distDir, file));
+  console.log(`Copied ${file} to dist.`);
 });

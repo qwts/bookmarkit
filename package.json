@@ -2,6 +2,7 @@
   "name": "bookmarkit",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite build --mode development",
@@ -14,11 +15,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "licenses:notices": "node scripts/generate-third-party-notices.mjs",
+    "licenses:notices:check": "node scripts/generate-third-party-notices.mjs --check",
     "changeset": "changeset",
     "changeset:version": "changeset version && node scripts/sync-manifest-version.mjs",
     "check:version-policy": "node scripts/check-version-policy.mjs",
     "package:release": "npm run build:chrome && node scripts/check-version-policy.mjs --built && node scripts/package-release.mjs",
-    "ci": "npm run check:version-policy && npm run format:check && npm run lint && npm run test && npm run build:chrome",
+    "ci": "npm run check:version-policy && npm run licenses:notices:check && npm run format:check && npm run lint && npm run test && npm run build:chrome",
     "prepare": "husky"
   },
   "lint-staged": {
