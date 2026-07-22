@@ -2,6 +2,7 @@ dist
 coverage
 node_modules
 package-lock.json
+THIRD-PARTY-NOTICES.md
 public/*.png
 public/vite.svg
 src/assets

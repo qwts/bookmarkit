@@ -282,17 +282,18 @@ The agent plans actions (search, filter, sort, limit, persist reorder) and updat
 
 ## Scripts
 
-| Script                    | What it does                                                         |
-| ------------------------- | -------------------------------------------------------------------- |
-| `npm run dev`             | Sourcemapped, unminified build to `dist/`. **Not** a dev server.     |
-| `npm run build`           | Production build to `dist/`.                                         |
-| `npm run build:chrome`    | Production build + copies the extension files into `dist/`.          |
-| `npm run preview`         | Serves `dist/` over HTTP (see the caveat under Build from source).   |
-| `npm run lint`            | ESLint.                                                              |
-| `npm test`                | Vitest suite once (`npm run test:watch` to watch).                   |
-| `npm run ci`              | The full gate CI runs: version policy, lint, tests, extension build. |
-| `npm run changeset`       | Record a changeset describing a user-facing change.                  |
-| `npm run package:release` | Build and package `release/bookmarkit-v<version>.zip` + checksum.    |
+| Script                     | What it does                                                         |
+| -------------------------- | -------------------------------------------------------------------- |
+| `npm run dev`              | Sourcemapped, unminified build to `dist/`. **Not** a dev server.     |
+| `npm run build`            | Production build to `dist/`.                                         |
+| `npm run build:chrome`     | Production build + copies the extension files into `dist/`.          |
+| `npm run preview`          | Serves `dist/` over HTTP (see the caveat under Build from source).   |
+| `npm run lint`             | ESLint.                                                              |
+| `npm test`                 | Vitest suite once (`npm run test:watch` to watch).                   |
+| `npm run ci`               | The full gate CI runs: version policy, lint, tests, extension build. |
+| `npm run changeset`        | Record a changeset describing a user-facing change.                  |
+| `npm run licenses:notices` | Regenerate locked production dependency notices.                     |
+| `npm run package:release`  | Build and package `release/bookmarkit-v<version>.zip` + checksum.    |
 
 ## Releasing
 
@@ -310,12 +311,10 @@ manifest that disagrees with `package.json` would ship a build that lies about i
 
 ## Contributing
 
-Issues and PRs are welcome. Please:
-
-- Keep UI accessible and keyboard‑friendly
-- Avoid introducing server dependencies (this is a client‑first tool)
-- Add tests or simple repro steps where helpful
+Issues and PRs are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md); the
+repository architecture is documented in [DESIGN.md](DESIGN.md).
 
 ## License
 
-Add your project’s license here (e.g., MIT).
+Bookmarkit is available under the [MIT License](LICENSE). Bundled dependencies
+retain their own terms; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

@@ -52,6 +52,9 @@ export function validateArchiveEntries(entries) {
     errors.push("archive must contain index.html at its root");
   if (!normalized.includes("popup.html"))
     errors.push("archive must contain popup.html at its root");
+  if (!normalized.includes("LICENSE")) errors.push("archive must contain LICENSE at its root");
+  if (!normalized.includes("THIRD-PARTY-NOTICES.md"))
+    errors.push("archive must contain THIRD-PARTY-NOTICES.md at its root");
 
   for (const entry of normalized) {
     if (
