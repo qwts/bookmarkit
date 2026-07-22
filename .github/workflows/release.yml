@@ -6,6 +6,8 @@ on:
       - "v*.*.*"
   workflow_dispatch:
     inputs:
+      # Security: this input can only select an existing stable-semver tag. The job validates the
+      # syntax, checks out that immutable tag, and refuses it unless its commit is already on main.
       tag:
         description: "Existing exact v<package-version> tag to package and release"
         required: true
@@ -41,10 +43,11 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Checkout release source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.release.outputs.tag }}
           fetch-depth: 0
+          persist-credentials: false
 
       # A tag pointing at a commit that never landed on main would publish unreviewed code under a
       # version number. Refuse rather than trust whoever pushed the tag.
@@ -63,10 +66,12 @@ jobs:
           fi
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
-          cache: npm
+          # setup-node v7 can infer npm caching from package metadata; publishing must stay
+          # completely isolated from mutable dependency caches.
+          package-manager-cache: false
 
       - name: Install dependencies
         run: npm ci
@@ -77,9 +82,11 @@ jobs:
         run: npm run ci
 
       - name: Package release
+        env:
+          TAG_NAME: ${{ steps.release.outputs.tag }}
         run: |
           node scripts/check-version-policy.mjs --built
-          node scripts/package-release.mjs --tag "${{ steps.release.outputs.tag }}"
+          node scripts/package-release.mjs --tag "$TAG_NAME"
 
       - name: Create or refresh GitHub Release assets
         env:
