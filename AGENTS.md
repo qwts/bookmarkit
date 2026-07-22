@@ -67,6 +67,6 @@ user and setup guidance in [`README.md`](README.md), and release notes in
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — contributor entry point.
 - [`src/stores/FIREBASE_SETUP.md`](src/stores/FIREBASE_SETUP.md) — Firebase-only
   configuration detail.
-- [Repository baseline SOP](https://github.com/qwts/playbook-software-engineering/blob/main/docs/sop/repo-baseline-files.md)
-  and [ENG-0006](https://github.com/qwts/playbook-software-engineering/blob/main/docs/decisions/ENG-0006-agentic-primitives-governance.md)
+- [Repository baseline SOP](https://github.com/qwts/playbook-engineering/blob/main/docs/sop/repo-baseline-files.md)
+  and [ENG-0006](https://github.com/qwts/playbook-engineering/blob/main/docs/decisions/ENG-0006-agentic-primitives-governance.md)
   — organization-wide rules inherited by this repository.
