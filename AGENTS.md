@@ -36,7 +36,8 @@ user and setup guidance in [`README.md`](README.md), and release notes in
 - Keep every third-party workflow action pinned to a full commit SHA with an
   exact version comment. Checkout credentials stay disabled unless a step has a
   documented need for them, release jobs do not restore mutable dependency
-  caches, and the dedicated zizmor CI job enforces these rules.
+  caches, and the dedicated zizmor CI job uses an explicit scanner version while
+  enforcing these rules.
 - `npm run dev` is a development-mode build into `dist/`, not an HMR server.
   Rebuild and reload the extension after changes.
 - User-visible features and fixes need a Changeset. Documentation, tests, and
