@@ -17,7 +17,7 @@ const codeHealthRules = {
 };
 
 export default defineConfig([
-  globalIgnores(["dist", "coverage"]),
+  globalIgnores(["dist", "coverage", "storybook-static"]),
 
   // App source: browser + WebExtension APIs (chrome.*)
   {

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { escapeHtml } from "../utils/url.js";
+import { Button, Tabs, Textarea } from "./DesignSystem.jsx";
 
 // UX-03: Memoize JSON/HTML export strings and data URIs to prevent recomputing on every render.
 // UX-04: Add confirmation step before import with append vs replace option.
@@ -104,9 +105,7 @@ const ImportExportContent = ({ bookmarks, onClose, onImportJson, onImportHtml, s
   };
 
   return (
-    <div className="p-6 bg-primary-bg rounded-lg">
-      <h2 className="text-2xl font-semibold mb-6 text-primary-text">Import / Export Bookmarks</h2>
-
+    <div>
       {/* UX-04: Confirmation step shown instead of the normal tabs UI */}
       {pendingImport ? (
         <div className="space-y-4">
@@ -137,41 +136,24 @@ const ImportExportContent = ({ bookmarks, onClose, onImportJson, onImportHtml, s
             </label>
           </div>
           <div className="flex space-x-3">
-            <button
-              onClick={executeImport}
-              className="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-colors"
-            >
-              Import
-            </button>
-            <button
-              onClick={cancelImport}
-              className="px-4 py-2 bg-secondary-bg text-primary-text border border-border rounded-md hover:bg-border focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-colors"
-            >
+            <Button onClick={executeImport}>Import</Button>
+            <Button intent="secondary" onClick={cancelImport}>
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
         <>
-          <div className="flex border-b border-border mb-4">
-            <button
-              className={`py-2 px-4 text-sm font-medium ${activeTab === "export" ? "border-b-2 border-accent text-accent" : "text-secondary-text hover:text-primary-text"}`}
-              onClick={() => setActiveTab("export")}
-            >
-              Export
-            </button>
-            <button
-              className={`py-2 px-4 text-sm font-medium ${activeTab === "import-json" ? "border-b-2 border-accent text-accent" : "text-secondary-text hover:text-primary-text"}`}
-              onClick={() => setActiveTab("import-json")}
-            >
-              Import JSON
-            </button>
-            <button
-              className={`py-2 px-4 text-sm font-medium ${activeTab === "import-html" ? "border-b-2 border-accent text-accent" : "text-secondary-text hover:text-primary-text"}`}
-              onClick={() => setActiveTab("import-html")}
-            >
-              Import HTML
-            </button>
+          <div className="mb-4">
+            <Tabs
+              active={activeTab}
+              onChange={setActiveTab}
+              tabs={[
+                { value: "export", label: "Export" },
+                { value: "import-json", label: "Import JSON" },
+                { value: "import-html", label: "Import HTML" },
+              ]}
+            />
           </div>
 
           {activeTab === "export" && (
@@ -180,22 +162,18 @@ const ImportExportContent = ({ bookmarks, onClose, onImportJson, onImportHtml, s
                 Export your bookmarks as JSON or Netscape HTML format.
               </p>
               <div>
-                <label
-                  htmlFor="export-json"
-                  className="block text-sm font-medium text-primary-text mb-1"
-                >
-                  JSON Export
-                </label>
-                <textarea
+                <Textarea
+                  label="JSON Export"
                   id="export-json"
                   readOnly
                   value={jsonExport}
-                  className="w-full h-48 px-3 py-2 border border-border rounded-md bg-secondary-bg text-primary-text font-mono text-sm resize-y"
-                ></textarea>
+                  mono
+                  rows={8}
+                />
                 <a
                   href={jsonDataUri}
                   download="bookmarks.json"
-                  className="inline-flex items-center px-4 py-2 bg-accent text-white text-sm font-medium rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-colors"
+                  className="ds-button ds-button--primary ds-button--md mt-2"
                 >
                   <svg
                     className="w-4 h-4 mr-2"
@@ -214,22 +192,18 @@ const ImportExportContent = ({ bookmarks, onClose, onImportJson, onImportHtml, s
                 </a>
               </div>
               <div>
-                <label
-                  htmlFor="export-html"
-                  className="block text-sm font-medium text-primary-text mb-1"
-                >
-                  HTML Export (Netscape Bookmark File)
-                </label>
-                <textarea
+                <Textarea
+                  label="HTML Export (Netscape Bookmark File)"
                   id="export-html"
                   readOnly
                   value={htmlExport}
-                  className="w-full h-48 px-3 py-2 border border-border rounded-md bg-secondary-bg text-primary-text font-mono text-sm resize-y"
-                ></textarea>
+                  mono
+                  rows={8}
+                />
                 <a
                   href={htmlDataUri}
                   download="bookmarks.html"
-                  className="inline-flex items-center px-4 py-2 bg-accent text-white text-sm font-medium rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-colors"
+                  className="ds-button ds-button--primary ds-button--md mt-2"
                 >
                   <svg
                     className="w-4 h-4 mr-2"
@@ -297,26 +271,22 @@ const ImportExportContent = ({ bookmarks, onClose, onImportJson, onImportHtml, s
                 className="block w-full text-sm text-secondary-text file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-secondary-bg file:text-accent hover:file:bg-primary-bg focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               />
               <div className="my-4 text-center text-sm text-secondary-text">— OR —</div>
-              <label
-                htmlFor="import-json-text"
-                className="block text-sm font-medium text-primary-text mb-2"
-              >
-                Paste JSON Data
-              </label>
-              <textarea
+              <Textarea
+                label="Paste JSON Data"
                 id="import-json-text"
                 value={importJsonText}
                 onChange={(e) => setImportJsonText(e.target.value)}
-                className="w-full h-48 px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent resize-y themed-input"
+                rows={8}
+                mono
                 placeholder='[{"title": "Example", "url": "https://example.com", "tags": ["test"]}]'
-              ></textarea>
-              <button
+              />
+              <Button
                 onClick={requestJsonImport}
                 disabled={isParsing || !importJsonText.trim()}
-                className="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50"
+                loading={isParsing}
               >
                 {isParsing ? "Parsing…" : "Import JSON Data"}
-              </button>
+              </Button>
             </div>
           )}
 
@@ -349,39 +319,27 @@ const ImportExportContent = ({ bookmarks, onClose, onImportJson, onImportHtml, s
                 className="block w-full text-sm text-secondary-text file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-secondary-bg file:text-accent hover:file:bg-primary-bg focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
               />
               <div className="my-4 text-center text-sm text-secondary-text">— OR —</div>
-              <label
-                htmlFor="import-html-text"
-                className="block text-sm font-medium text-primary-text mb-2"
-              >
-                Paste HTML Data
-              </label>
-              <textarea
+              <Textarea
+                label="Paste HTML Data"
                 id="import-html-text"
                 value={importHtmlText}
                 onChange={(e) => setImportHtmlText(e.target.value)}
-                className="w-full h-48 px-3 py-2 border border-border rounded-md focus:ring-accent focus:border-accent resize-y themed-input"
+                rows={8}
+                mono
                 placeholder="<!DOCTYPE NETSCAPE-Bookmark-file-1>..."
-              ></textarea>
-              <button
-                onClick={requestHtmlImport}
-                disabled={!importHtmlText.trim()}
-                className="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-colors duration-200 disabled:opacity-50"
-              >
+              />
+              <Button onClick={requestHtmlImport} disabled={!importHtmlText.trim()}>
                 Import HTML Data
-              </button>
+              </Button>
             </div>
           )}
         </>
       )}
 
       <div className="flex justify-end mt-6">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 bg-secondary-bg text-primary-text rounded-md hover:bg-primary-bg focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 transition-colors duration-200"
-        >
+        <Button type="button" intent="secondary" onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
     </div>
   );

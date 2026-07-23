@@ -6,89 +6,55 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useBookmarkStore } from "../hooks/useBookmarkStore.js";
 import { useTheme } from "../hooks/useTheme.js";
 import { isSafeHttpUrl } from "../utils/url.js";
-
-const inputClass =
-  "w-full px-2 py-1.5 text-sm rounded-md border border-border themed-input focus:outline-none focus:ring-2 focus:ring-accent";
-
-function StarRating({ value, onChange }) {
-  return (
-    <div className="flex items-center gap-0.5" role="group" aria-label="Rating">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          // Clicking the current rating clears it — matches BookmarkForm's toggle.
-          onClick={() => onChange(value === n ? 0 : n)}
-          className="text-lg leading-none focus:outline-none focus:ring-2 focus:ring-accent rounded"
-          style={{ color: n <= value ? "var(--accent)" : "var(--border)" }}
-          aria-label={`${n} star${n === 1 ? "" : "s"}${value === n ? " (selected — activate to clear)" : ""}`}
-          aria-pressed={n <= value}
-        >
-          ★
-        </button>
-      ))}
-    </div>
-  );
-}
+import { Banner, Button, Input, StarRating, Tag } from "../components/DesignSystem.jsx";
 
 function QuickAddFields({ form, setForm, folderOptions }) {
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   return (
     <>
       <div>
-        <label htmlFor="qa-title" className="sr-only">
-          Title
-        </label>
-        <input
+        <Input
           id="qa-title"
           type="text"
           value={form.title}
           onChange={set("title")}
           placeholder="Title"
-          className={inputClass}
+          aria-label="Title"
           autoFocus
         />
       </div>
 
       <div>
-        <label htmlFor="qa-url" className="sr-only">
-          URL
-        </label>
-        <input
+        <Input
           id="qa-url"
           type="text"
           value={form.url}
           onChange={set("url")}
           placeholder="https://…"
-          className={`${inputClass} text-xs`}
+          aria-label="URL"
+          style={{ fontSize: "var(--text-xs)" }}
         />
       </div>
 
       <div className="flex gap-2">
         <div className="flex-1">
-          <label htmlFor="qa-tags" className="sr-only">
-            Tags, comma separated
-          </label>
-          <input
+          <Input
             id="qa-tags"
             type="text"
             value={form.tags}
             onChange={set("tags")}
             placeholder="tags, comma, separated"
-            className={inputClass}
+            aria-label="Tags, comma separated"
           />
         </div>
         <div className="flex-1">
-          <label htmlFor="qa-folder" className="sr-only">
-            Folder
-          </label>
-          <input
+          <Input
             id="qa-folder"
             type="text"
             value={form.folderId}
             onChange={set("folderId")}
             placeholder="Folder (e.g. Work/API)"
-            className={inputClass}
+            aria-label="Folder"
             list="qa-folders"
           />
           {/* Cheap folder autocomplete against paths already in use — typing a folder
@@ -110,12 +76,9 @@ function PopupError({ message, onOpenApp }) {
   return (
     <div className="p-4 w-[22rem]" style={shellStyle}>
       <p className="text-sm text-secondary-text mb-3">{message}</p>
-      <button
-        onClick={onOpenApp}
-        className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent"
-      >
+      <Button size="sm" onClick={onOpenApp}>
         Open bookmarkit
-      </button>
+      </Button>
     </div>
   );
 }
@@ -261,45 +224,31 @@ const QuickAdd = () => {
         <h1 className="text-sm font-semibold text-primary-text">
           {existing ? "Edit bookmark" : "Add bookmark"}
         </h1>
-        {existing && (
-          <span className="text-xs px-1.5 py-0.5 rounded-full bg-secondary-bg text-secondary-text border border-border">
-            Already saved
-          </span>
-        )}
+        {existing && <Tag>Already saved</Tag>}
       </div>
 
       <QuickAddFields form={form} setForm={setForm} folderOptions={folderOptions} />
 
       <div className="flex items-center justify-between">
-        <StarRating value={form.rating} onChange={(rating) => setForm((f) => ({ ...f, rating }))} />
-        <button
-          onClick={openFullApp}
-          className="text-xs text-secondary-text hover:text-primary-text underline focus:outline-none focus:ring-2 focus:ring-accent rounded"
-        >
+        <StarRating
+          value={form.rating}
+          onChange={(rating) => setForm((f) => ({ ...f, rating }))}
+          buttonSemantics
+        />
+        <Button intent="ghost" size="sm" onClick={openFullApp}>
           Open full app
-        </button>
+        </Button>
       </div>
 
-      {status.state === "error" && (
-        <p className="text-xs text-red-600" role="alert">
-          {status.message}
-        </p>
-      )}
+      {status.state === "error" && <Banner tone="error">{status.message}</Banner>}
 
       <div className="flex gap-2 mt-1">
-        <button
-          onClick={handleSave}
-          disabled={saving || saved}
-          className="flex-1 px-3 py-1.5 bg-accent text-white text-sm rounded-md hover:bg-accent-hover disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-accent"
-        >
+        <Button fullWidth onClick={handleSave} disabled={saving || saved} loading={saving}>
           {saving ? "Saving…" : saved ? `✓ ${status.message}` : existing ? "Update" : "Save"}
-        </button>
-        <button
-          onClick={() => window.close()}
-          className="px-3 py-1.5 text-sm rounded-md border border-border text-primary-text hover:bg-secondary-bg focus:outline-none focus:ring-2 focus:ring-accent"
-        >
+        </Button>
+        <Button intent="secondary" onClick={() => window.close()}>
           Cancel
-        </button>
+        </Button>
       </div>
 
       <p className="text-[10px] text-secondary-text text-center" aria-hidden="true">

@@ -2,6 +2,7 @@
 // Class component required by React's error boundary API.
 
 import React from "react";
+import { Button } from "./DesignSystem.jsx";
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -29,14 +30,9 @@ export default class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div
+          className="ds-empty-state"
           style={{
             minHeight: "200px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "24px",
-            textAlign: "center",
             color: "var(--text-primary, #111827)",
             backgroundColor: "var(--bg-primary, #ffffff)",
           }}
@@ -68,20 +64,7 @@ export default class ErrorBoundary extends React.Component {
           >
             {this.props.fallbackMessage || "An unexpected error occurred in this section."}
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: "var(--accent, #3b82f6)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontSize: "14px",
-            }}
-          >
-            Reload
-          </button>
+          <Button onClick={() => window.location.reload()}>Reload</Button>
         </div>
       );
     }

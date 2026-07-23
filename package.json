@@ -9,6 +9,8 @@
     "build": "vite build",
     "build:chrome": "vite build && node scripts/build-chrome.js",
     "preview": "vite preview",
+    "storybook": "storybook dev -p 6006",
+    "build:storybook": "storybook build",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -21,7 +23,7 @@
     "changeset:version": "changeset version && node scripts/sync-manifest-version.mjs",
     "check:version-policy": "node scripts/check-version-policy.mjs",
     "package:release": "npm run build:chrome && node scripts/check-version-policy.mjs --built && node scripts/package-release.mjs",
-    "ci": "npm run check:version-policy && npm run licenses:notices:check && npm run format:check && npm run lint && npm run test && npm run build:chrome",
+    "ci": "npm run check:version-policy && npm run licenses:notices:check && npm run format:check && npm run lint && npm run test && npm run build:chrome && npm run build:storybook",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -48,6 +50,8 @@
   "devDependencies": {
     "@changesets/cli": "^2.31.1",
     "@eslint/js": "^9.33.0",
+    "@storybook/addon-a11y": "^10.5.3",
+    "@storybook/react-vite": "^10.5.3",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.1.10",
@@ -66,6 +70,7 @@
     "lint-staged": "^15.5.2",
     "postcss": "^8.4.47",
     "prettier": "^3.9.5",
+    "storybook": "^10.5.3",
     "tailwindcss": "^3.4.14",
     "vite": "^7.3.2",
     "vitest": "^4.1.10"

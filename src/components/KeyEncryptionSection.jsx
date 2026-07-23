@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Banner, Button, Input } from "./DesignSystem.jsx";
 
 // #29: passphrase encryption-at-rest controls. Rendered regardless of the
 // selected provider so a locked key can always be unlocked (a keyless provider
@@ -48,24 +49,26 @@ const KeyEncryptionSection = ({
   };
 
   return (
-    <div className="border-t border-border pt-3">
-      <label className="block text-sm font-medium text-primary-text mb-1">API key encryption</label>
+    <section className="border-t border-border pt-4 space-y-3">
+      <h3 className="text-lg font-semibold text-primary-text">API key encryption</h3>
       {!encryption.encrypted && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <p className="text-xs text-secondary-text">
             Optionally encrypt your stored API key with a passphrase. You'll enter it once per
             session; if you forget it you'll need to re-enter your API key.
           </p>
-          <input
+          <Input
+            label="Passphrase"
+            id="encryption-passphrase"
             type="password"
-            className="w-full border rounded-md px-3 py-2 themed-input"
             placeholder="Passphrase (min 6 characters)"
             value={passInput}
             onChange={(e) => setPassInput(e.target.value)}
           />
-          <input
+          <Input
+            label="Confirm passphrase"
+            id="encryption-passphrase-confirm"
             type="password"
-            className="w-full border rounded-md px-3 py-2 themed-input"
             placeholder="Confirm passphrase"
             value={passConfirm}
             onChange={(e) => setPassConfirm(e.target.value)}
@@ -73,25 +76,21 @@ const KeyEncryptionSection = ({
               if (e.key === "Enter") submitEnable();
             }}
           />
-          {error && <p className="text-xs text-red-600">{error}</p>}
-          <button
-            type="button"
-            disabled={busy}
-            onClick={submitEnable}
-            className="px-3 py-1.5 bg-accent text-white text-sm rounded-md hover:bg-accent-hover disabled:opacity-50"
-          >
+          {error && <Banner tone="error">{error}</Banner>}
+          <Button type="button" disabled={busy} loading={busy} onClick={submitEnable}>
             Encrypt API key
-          </button>
+          </Button>
         </div>
       )}
       {encryption.encrypted && encryption.locked && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <p className="text-xs text-secondary-text">
             🔒 Your API key is encrypted. Enter your passphrase to unlock it for this session.
           </p>
-          <input
+          <Input
+            label="Passphrase"
+            id="encryption-unlock-passphrase"
             type="password"
-            className="w-full border rounded-md px-3 py-2 themed-input"
             placeholder="Passphrase"
             value={unlockInput}
             onChange={(e) => setUnlockInput(e.target.value)}
@@ -99,41 +98,28 @@ const KeyEncryptionSection = ({
               if (e.key === "Enter") submitUnlock();
             }}
           />
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <Banner tone="error">{error}</Banner>}
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={submitUnlock}
-              className="px-3 py-1.5 bg-accent text-white text-sm rounded-md hover:bg-accent-hover disabled:opacity-50"
-            >
+            <Button type="button" disabled={busy} loading={busy} onClick={submitUnlock}>
               Unlock
-            </button>
-            <button
-              type="button"
-              onClick={() => onDisableEncryption?.()}
-              className="text-xs text-secondary-text hover:underline"
-            >
+            </Button>
+            <Button type="button" intent="ghost" size="sm" onClick={() => onDisableEncryption?.()}>
               Forgot passphrase? Remove encryption
-            </button>
+            </Button>
           </div>
         </div>
       )}
       {encryption.encrypted && !encryption.locked && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <p className="text-xs text-secondary-text">
             🔓 Your API key is encrypted (unlocked for this session).
           </p>
-          <button
-            type="button"
-            onClick={() => onDisableEncryption?.()}
-            className="px-3 py-1.5 border border-border rounded-md text-sm text-primary-text hover:bg-secondary-bg"
-          >
+          <Button type="button" intent="secondary" onClick={() => onDisableEncryption?.()}>
             Remove encryption
-          </button>
+          </Button>
         </div>
       )}
-    </div>
+    </section>
   );
 };
 
