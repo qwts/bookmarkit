@@ -204,6 +204,24 @@ function itemKey(index, data) {
   return index === 0 ? "bookmark-filters" : data.bookmarks[index - 1].id;
 }
 
+const VirtualizedListInner = React.forwardRef(function VirtualizedListInner(
+  { children, style },
+  ref
+) {
+  const rows = React.Children.toArray(children);
+  const filterRow = rows.find((row) => row.props.index === 0);
+  const bookmarkRows = rows.filter((row) => row.props.index !== 0);
+
+  return (
+    <div ref={ref} style={style}>
+      {filterRow}
+      <div role="list" aria-label="Bookmarks">
+        {bookmarkRows}
+      </div>
+    </div>
+  );
+});
+
 const BookmarkList = React.memo(function BookmarkList({
   bookmarks,
   selectedBookmarkId,
@@ -233,6 +251,10 @@ const BookmarkList = React.memo(function BookmarkList({
   const rowHeightsRef = useRef(new Map());
   const [listHeight, setListHeight] = useState(500);
   const [filterHeight, setFilterHeight] = useState(136);
+  const bookmarkOrder = useMemo(
+    () => bookmarks.map((bookmark) => bookmark.id).join("\u0000"),
+    [bookmarks]
+  );
 
   // Measure container height so FixedSizeList fills the available space.
   useEffect(() => {
@@ -248,7 +270,7 @@ const BookmarkList = React.memo(function BookmarkList({
 
   useEffect(() => {
     listRef.current?.resetAfterIndex(0);
-  }, [filterHeight]);
+  }, [bookmarkOrder, filterHeight]);
 
   const handleFilterHeightChange = useCallback((height) => {
     setFilterHeight((current) => (current === height ? current : height));
@@ -324,10 +346,11 @@ const BookmarkList = React.memo(function BookmarkList({
   }
 
   return (
-    <div ref={containerRef} role="list" aria-label="Bookmarks" style={{ height: "100%" }}>
+    <div ref={containerRef} style={{ height: "100%" }}>
       <VariableSizeList
         ref={listRef}
         height={listHeight}
+        innerElementType={VirtualizedListInner}
         itemCount={bookmarks.length + 1}
         itemSize={(index) =>
           index === 0
