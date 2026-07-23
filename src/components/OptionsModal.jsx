@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { LLM_PROVIDERS, createLLM } from "../llm/index.js";
 import { useDebounce } from "../hooks/useDebounce.js";
 import KeyEncryptionSection from "./KeyEncryptionSection.jsx";
+import { Banner, Button, IconButton, Input, Modal, Select } from "./DesignSystem.jsx";
 
 // ARCH-04: Module-level cache for listModels() results, keyed by "provider|apiKey|baseUrl".
 // A 5-minute TTL prevents hammering the models endpoint when the modal is repeatedly opened.
@@ -103,336 +104,268 @@ const OptionsModal = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 flex items-center justify-center z-50"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="bg-primary-bg rounded-lg shadow-xl max-w-md w-full m-4">
-        <div className="p-6">
-          <div className="flex justify-between items-start mb-4">
-            <h2 className="text-xl font-semibold text-primary-text">Options</h2>
-            <button
-              onClick={onClose}
-              className="text-secondary-text hover:text-primary-text"
-              aria-label="Close options"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-          {/* Read-only status: shows what provider + model will actually be used */}
-          <div className="mb-4 p-3 rounded-md bg-secondary-bg border border-border text-sm font-mono">
-            <span className="text-secondary-text">Active: </span>
-            <span className="text-primary-text font-semibold">{provider || "none"}</span>
-            {providerOptions.model && (
-              <>
-                <span className="text-secondary-text"> / </span>
-                <span className="text-primary-text">{providerOptions.model}</span>
-              </>
-            )}
-          </div>
+    <>
+      <Modal title="Options" closeLabel="Close options" onClose={onClose} size="lg">
+        {/* Read-only status: shows what provider + model will actually be used */}
+        <div className="mb-4 p-3 rounded-md bg-secondary-bg border border-border text-sm font-mono">
+          <span className="text-secondary-text">Active: </span>
+          <span className="text-primary-text font-semibold">{provider || "none"}</span>
+          {providerOptions.model && (
+            <>
+              <span className="text-secondary-text"> / </span>
+              <span className="text-primary-text">{providerOptions.model}</span>
+            </>
+          )}
+        </div>
 
-          <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="llm-provider"
-                className="block text-sm font-medium text-primary-text mb-1"
-              >
-                LLM Provider
-              </label>
-              <select
-                id="llm-provider"
-                className="w-full border rounded-md px-3 py-2 themed-input"
-                value={provider}
-                onChange={(e) => onChange?.(e.target.value)}
-              >
-                {providerEntries.map((p) => (
-                  <option key={p.value} value={p.value}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-secondary-text mt-1">
-                Changes apply immediately and persist to this browser.
-              </p>
-            </div>
-            {/* #29: encryption controls — shown for every provider so a locked key
-                can always be unlocked, even on keyless providers (ollama/lmstudio). */}
-            <KeyEncryptionSection
-              encryption={encryption}
-              onEnableEncryption={onEnableEncryption}
-              onDisableEncryption={onDisableEncryption}
-              onUnlock={onUnlock}
-            />
-            {/* Provider-specific settings */}
-            {(provider === LLM_PROVIDERS.GEMINI ||
-              provider === LLM_PROVIDERS.OPENAI ||
-              provider === LLM_PROVIDERS.GROK) && (
-              <div className="space-y-3">
-                <div>
-                  <label
-                    htmlFor="api-key"
-                    className="block text-sm font-medium text-primary-text mb-1"
-                  >
-                    API Key
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-primary-text">Provider &amp; model</h3>
+          <Select
+            label="LLM Provider"
+            id="llm-provider"
+            value={provider}
+            onChange={(e) => onChange?.(e.target.value)}
+            options={providerEntries}
+            hint="Changes apply immediately and persist to this browser."
+          />
+          {/* Provider-specific settings */}
+          {(provider === LLM_PROVIDERS.GEMINI ||
+            provider === LLM_PROVIDERS.OPENAI ||
+            provider === LLM_PROVIDERS.GROK) && (
+            <div className="space-y-3">
+              <Input
+                label="API Key"
+                id="api-key"
+                type="password"
+                placeholder={encryption.locked ? "Locked — unlock below to edit" : "Enter API key"}
+                value={providerOptions.apiKey || ""}
+                disabled={encryption.locked}
+                onChange={(e) => onChangeOptions?.({ apiKey: e.target.value })}
+              />
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="model" className="block text-sm font-medium text-primary-text">
+                    Model
                   </label>
-                  <input
-                    id="api-key"
-                    type="password"
-                    className="w-full border rounded-md px-3 py-2 themed-input disabled:opacity-50"
-                    placeholder={
-                      encryption.locked ? "Locked — unlock below to edit" : "Enter API key"
-                    }
-                    value={providerOptions.apiKey || ""}
-                    disabled={encryption.locked}
-                    onChange={(e) => onChangeOptions?.({ apiKey: e.target.value })}
+                  <Button
+                    type="button"
+                    intent="ghost"
+                    size="sm"
+                    onClick={() => fetchModels(true)}
+                    disabled={isLoadingModels}
+                    loading={isLoadingModels}
+                    aria-label="Refresh model list"
+                  >
+                    {isLoadingModels ? "Loading…" : "Refresh"}
+                  </Button>
+                </div>
+                {models && models.length > 0 ? (
+                  <Select
+                    id="model"
+                    value={providerOptions.model || models[0] || ""}
+                    onChange={(e) => onChangeOptions?.({ model: e.target.value })}
+                    options={models}
                   />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label htmlFor="model" className="block text-sm font-medium text-primary-text">
-                      Model
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => fetchModels(true)}
-                      className="text-xs text-accent hover:underline disabled:text-secondary-text"
-                      disabled={isLoadingModels}
-                      aria-label="Refresh model list"
-                    >
-                      {isLoadingModels ? "Loading…" : "Refresh"}
-                    </button>
-                  </div>
-                  {models && models.length > 0 ? (
-                    <select
-                      id="model"
-                      className="w-full border rounded-md px-3 py-2 themed-input"
-                      value={providerOptions.model || models[0] || ""}
-                      onChange={(e) => onChangeOptions?.({ model: e.target.value })}
-                    >
-                      {models.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      id="model"
-                      type="text"
-                      className="w-full border rounded-md px-3 py-2 themed-input"
-                      placeholder={
-                        provider === LLM_PROVIDERS.GEMINI
-                          ? "gemini-2.0-flash"
-                          : provider === LLM_PROVIDERS.OPENAI
-                            ? "gpt-4o-mini"
-                            : "grok-beta"
-                      }
-                      value={providerOptions.model || ""}
-                      onChange={(e) => onChangeOptions?.({ model: e.target.value })}
-                    />
-                  )}
-                  {modelsError && <p className="text-xs text-red-600 mt-1">{modelsError}</p>}
-                </div>
-                {(provider === LLM_PROVIDERS.OPENAI || provider === LLM_PROVIDERS.GROK) && (
-                  <div>
-                    <label
-                      htmlFor="base-url"
-                      className="block text-sm font-medium text-primary-text mb-1"
-                    >
-                      Base URL (optional)
-                    </label>
-                    <input
-                      id="base-url"
-                      type="text"
-                      className="w-full border rounded-md px-3 py-2 themed-input"
-                      placeholder={
-                        provider === LLM_PROVIDERS.OPENAI
-                          ? "https://api.openai.com/v1"
-                          : "https://api.x.ai/v1"
-                      }
-                      value={providerOptions.baseUrl || ""}
-                      onChange={(e) => onChangeOptions?.({ baseUrl: e.target.value })}
-                    />
-                    {baseUrlError && (
-                      <p className="mt-1 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">
-                        {baseUrlError}
-                      </p>
-                    )}
-                  </div>
+                ) : (
+                  <Input
+                    id="model"
+                    type="text"
+                    placeholder={
+                      provider === LLM_PROVIDERS.GEMINI
+                        ? "gemini-2.0-flash"
+                        : provider === LLM_PROVIDERS.OPENAI
+                          ? "gpt-4o-mini"
+                          : "grok-beta"
+                    }
+                    value={providerOptions.model || ""}
+                    onChange={(e) => onChangeOptions?.({ model: e.target.value })}
+                  />
+                )}
+                {modelsError && (
+                  <Banner tone="error" className="mt-1">
+                    {modelsError}
+                  </Banner>
                 )}
               </div>
-            )}
-            {(provider === LLM_PROVIDERS.OLLAMA || provider === LLM_PROVIDERS.LMSTUDIO) && (
-              <div className="space-y-3">
+              {(provider === LLM_PROVIDERS.OPENAI || provider === LLM_PROVIDERS.GROK) && (
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label
-                      htmlFor="ollama-model"
-                      className="block text-sm font-medium text-primary-text"
-                    >
-                      Model
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => fetchModels(true)}
-                      className="text-xs text-accent hover:underline disabled:text-secondary-text"
-                      disabled={isLoadingModels}
-                      aria-label="Refresh model list"
-                    >
-                      {isLoadingModels ? "Loading…" : "Refresh"}
-                    </button>
-                  </div>
-                  {models && models.length > 0 ? (
-                    <select
-                      id="ollama-model"
-                      className="w-full border rounded-md px-3 py-2 themed-input"
-                      value={providerOptions.model || models[0] || ""}
-                      onChange={(e) => onChangeOptions?.({ model: e.target.value })}
-                    >
-                      {models.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      id="ollama-model"
-                      type="text"
-                      className="w-full border rounded-md px-3 py-2 themed-input"
-                      placeholder={
-                        provider === LLM_PROVIDERS.OLLAMA
-                          ? "llama3.1"
-                          : "lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF"
-                      }
-                      value={providerOptions.model || ""}
-                      onChange={(e) => onChangeOptions?.({ model: e.target.value })}
-                    />
-                  )}
-                  {modelsError && <p className="text-xs text-red-600 mt-1">{modelsError}</p>}
-                </div>
-                <div>
-                  <label
-                    htmlFor="ollama-url"
-                    className="block text-sm font-medium text-primary-text mb-1"
-                  >
-                    Base URL
-                  </label>
-                  <input
-                    id="ollama-url"
+                  <Input
+                    label="Base URL (optional)"
+                    id="base-url"
                     type="text"
-                    className="w-full border rounded-md px-3 py-2 themed-input"
                     placeholder={
-                      provider === LLM_PROVIDERS.OLLAMA
-                        ? "http://localhost:11434"
-                        : "http://localhost:1234"
+                      provider === LLM_PROVIDERS.OPENAI
+                        ? "https://api.openai.com/v1"
+                        : "https://api.x.ai/v1"
                     }
                     value={providerOptions.baseUrl || ""}
                     onChange={(e) => onChangeOptions?.({ baseUrl: e.target.value })}
                   />
                   {baseUrlError && (
-                    <p className="mt-1 text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1">
+                    <Banner tone="warning" className="mt-1">
                       {baseUrlError}
-                    </p>
+                    </Banner>
                   )}
                 </div>
-              </div>
-            )}
-            {/* Temperature */}
-            {(() => {
-              const supportsTemp = modelSupportsTemperature(provider, providerOptions.model);
-              const isEnabled = supportsTemp && !!providerOptions.enableTemperature;
-              const tempValue =
-                typeof providerOptions.temperature === "number" ? providerOptions.temperature : 1;
-              return (
-                <div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="enable-temperature"
-                      checked={isEnabled}
-                      disabled={!supportsTemp}
-                      onChange={(e) => onChangeOptions?.({ enableTemperature: e.target.checked })}
-                      className="rounded border-border accent-accent cursor-pointer disabled:cursor-not-allowed"
-                    />
-                    <label
-                      htmlFor="enable-temperature"
-                      className={`text-sm font-medium ${supportsTemp ? "text-primary-text" : "text-secondary-text"} cursor-pointer`}
-                    >
-                      Temperature
-                    </label>
-                    {!supportsTemp && (
-                      <span className="text-xs text-secondary-text">
-                        (not supported by this model)
-                      </span>
-                    )}
-                    {isEnabled && (
-                      <span className="ml-auto text-sm tabular-nums text-primary-text">
-                        {tempValue.toFixed(1)}
-                      </span>
-                    )}
-                  </div>
-                  {isEnabled && (
-                    <div className="flex items-center gap-3 mt-2">
-                      <span className="text-xs text-secondary-text">0</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="2"
-                        step="0.1"
-                        value={tempValue}
-                        onChange={(e) =>
-                          onChangeOptions?.({ temperature: parseFloat(e.target.value) })
-                        }
-                        className="flex-1 accent-accent"
-                        aria-label="Temperature value"
-                      />
-                      <span className="text-xs text-secondary-text">2</span>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-            {/* Theme settings */}
-            <div>
-              <label
-                htmlFor="theme-select"
-                className="block text-sm font-medium text-primary-text mb-1"
-              >
-                Theme
-              </label>
-              <select
-                id="theme-select"
-                className="w-full border rounded-md px-3 py-2 themed-input"
-                value={currentTheme}
-                onChange={(e) => onThemeChange?.(e.target.value)}
-              >
-                {Object.keys(themes).map((themeName) => (
-                  <option key={themeName} value={themeName}>
-                    {themeName}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-secondary-text mt-1">Select a theme to apply.</p>
+              )}
             </div>
+          )}
+          {(provider === LLM_PROVIDERS.OLLAMA || provider === LLM_PROVIDERS.LMSTUDIO) && (
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label
+                    htmlFor="ollama-model"
+                    className="block text-sm font-medium text-primary-text"
+                  >
+                    Model
+                  </label>
+                  <Button
+                    type="button"
+                    intent="ghost"
+                    size="sm"
+                    onClick={() => fetchModels(true)}
+                    disabled={isLoadingModels}
+                    loading={isLoadingModels}
+                    aria-label="Refresh model list"
+                  >
+                    {isLoadingModels ? "Loading…" : "Refresh"}
+                  </Button>
+                </div>
+                {models && models.length > 0 ? (
+                  <Select
+                    id="ollama-model"
+                    value={providerOptions.model || models[0] || ""}
+                    onChange={(e) => onChangeOptions?.({ model: e.target.value })}
+                    options={models}
+                  />
+                ) : (
+                  <Input
+                    id="ollama-model"
+                    type="text"
+                    placeholder={
+                      provider === LLM_PROVIDERS.OLLAMA
+                        ? "llama3.1"
+                        : "lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF"
+                    }
+                    value={providerOptions.model || ""}
+                    onChange={(e) => onChangeOptions?.({ model: e.target.value })}
+                  />
+                )}
+                {modelsError && (
+                  <Banner tone="error" className="mt-1">
+                    {modelsError}
+                  </Banner>
+                )}
+              </div>
+              <div>
+                <Input
+                  label="Base URL"
+                  id="ollama-url"
+                  type="text"
+                  placeholder={
+                    provider === LLM_PROVIDERS.OLLAMA
+                      ? "http://localhost:11434"
+                      : "http://localhost:1234"
+                  }
+                  value={providerOptions.baseUrl || ""}
+                  onChange={(e) => onChangeOptions?.({ baseUrl: e.target.value })}
+                />
+                {baseUrlError && (
+                  <Banner tone="warning" className="mt-1">
+                    {baseUrlError}
+                  </Banner>
+                )}
+              </div>
+            </div>
+          )}
+          {/* Temperature */}
+          {(() => {
+            const supportsTemp = modelSupportsTemperature(provider, providerOptions.model);
+            const isEnabled = supportsTemp && !!providerOptions.enableTemperature;
+            const tempValue =
+              typeof providerOptions.temperature === "number" ? providerOptions.temperature : 1;
+            return (
+              <div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="enable-temperature"
+                    checked={isEnabled}
+                    disabled={!supportsTemp}
+                    onChange={(e) => onChangeOptions?.({ enableTemperature: e.target.checked })}
+                    className="rounded border-border accent-accent cursor-pointer disabled:cursor-not-allowed"
+                  />
+                  <label
+                    htmlFor="enable-temperature"
+                    className={`text-sm font-medium ${supportsTemp ? "text-primary-text" : "text-secondary-text"} cursor-pointer`}
+                  >
+                    Set temperature
+                  </label>
+                  {!supportsTemp && (
+                    <span className="text-xs text-secondary-text">
+                      (not supported by this model)
+                    </span>
+                  )}
+                  {isEnabled && (
+                    <span className="ml-auto text-sm tabular-nums text-primary-text">
+                      {tempValue.toFixed(1)}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-secondary-text">
+                  Higher values make responses more varied. Leave off to use the provider default.
+                </p>
+                {isEnabled && (
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="text-xs text-secondary-text">0</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="2"
+                      step="0.1"
+                      value={tempValue}
+                      onChange={(e) =>
+                        onChangeOptions?.({ temperature: parseFloat(e.target.value) })
+                      }
+                      className="flex-1 accent-accent"
+                      aria-label="Temperature value"
+                    />
+                    <span className="text-xs text-secondary-text">2</span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          {/* #29: encryption controls — shown for every provider so a locked key
+                can always be unlocked, even on keyless providers (ollama/lmstudio). */}
+          <KeyEncryptionSection
+            encryption={encryption}
+            onEnableEncryption={onEnableEncryption}
+            onDisableEncryption={onDisableEncryption}
+            onUnlock={onUnlock}
+          />
+          {/* Theme settings */}
+          <div className="border-t border-border pt-4 space-y-4">
+            <h3 className="text-lg font-semibold text-primary-text">Appearance</h3>
+            <Select
+              label="Theme"
+              id="theme-select"
+              value={currentTheme}
+              onChange={(e) => onThemeChange?.(e.target.value)}
+              options={Object.keys(themes)}
+              hint="Select a theme to apply."
+            />
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-primary-text">Upload Theme</label>
-                <button
+                <label className="block text-sm font-medium text-primary-text">
+                  Upload custom theme
+                </label>
+                <IconButton
                   type="button"
+                  label="Show theme example"
+                  size="sm"
                   onClick={() => setShowExample(true)}
-                  className="p-1 rounded-full text-secondary-text hover:text-primary-text hover:bg-secondary-bg focus:outline-none focus:ring-2 focus:ring-accent transition-colors"
-                  aria-label="Show theme example"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -449,7 +382,7 @@ const OptionsModal = ({
                     <path d="M9.09 9a3 3 0 115.82 1c-.44.86-1.26 1.3-1.91 1.63-.51.26-.75.52-.75.87v.5" />
                     <line x1="12" y1="17" x2="12.01" y2="17" />
                   </svg>
-                </button>
+                </IconButton>
               </div>
               <input
                 type="file"
@@ -460,49 +393,26 @@ const OptionsModal = ({
               <p className="text-xs text-secondary-text mt-1">Upload a JSON or YAML theme file.</p>
             </div>
           </div>
-          <div className="flex justify-end mt-6">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-            >
-              Close
-            </button>
-          </div>
         </div>
-      </div>
+        <div className="flex items-center justify-between gap-4 mt-6 pt-4 border-t border-border">
+          <p className="text-xs text-secondary-text">Changes save to this browser.</p>
+          <Button onClick={onClose}>Done</Button>
+        </div>
+      </Modal>
 
       {showExample && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-          onClick={(e) => e.target === e.currentTarget && setShowExample(false)}
-          role="dialog"
-          aria-modal="true"
+        <Modal
+          title="Theme File Format"
+          closeLabel="Close example"
+          onClose={() => setShowExample(false)}
+          size="lg"
+          footer={<Button onClick={() => setShowExample(false)}>Close</Button>}
         >
-          <div className="bg-primary-bg rounded-lg shadow-xl max-w-lg w-full m-4">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-semibold text-primary-text">Theme File Format</h3>
-                <button
-                  onClick={() => setShowExample(false)}
-                  className="text-secondary-text hover:text-primary-text"
-                  aria-label="Close example"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <p className="mb-4 text-secondary-text">
-                Upload a JSON or YAML file with the following structure:
-              </p>
-              <pre className="p-4 rounded text-sm overflow-x-auto bg-secondary-bg text-primary-text">
-                {`{
+          <p className="mb-4 text-secondary-text">
+            Upload a JSON or YAML file with the following structure:
+          </p>
+          <pre className="p-4 rounded text-sm overflow-x-auto bg-secondary-bg text-primary-text">
+            {`{
   "bgPrimary": "#1f2937",
   "bgSecondary": "#111827",
   "textPrimary": "#f9fafb",
@@ -511,23 +421,13 @@ const OptionsModal = ({
   "accent": "#3b82f6",
   "accentHover": "#2563eb"
 }`}
-              </pre>
-              <p className="mt-4 text-sm text-secondary-text">
-                All properties are required. Colors should be in hex format (#rrggbb).
-              </p>
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={() => setShowExample(false)}
-                  className="px-4 py-2 bg-accent text-white rounded-md hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+          </pre>
+          <p className="mt-4 text-sm text-secondary-text">
+            All properties are required. Colors should be in hex format (#rrggbb).
+          </p>
+        </Modal>
       )}
-    </div>
+    </>
   );
 };
 

@@ -26,7 +26,7 @@ import ImportExportContent from "./ImportExportContent";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import OptionsModal from "./OptionsModal";
 import BookmarkList from "./BookmarkList.jsx";
-import FilterBar from "./FilterBar.jsx";
+import { AgentPlan, Button, IconButton, Kbd, Modal, SearchBar, Toast } from "./DesignSystem.jsx";
 
 const getImportResultMessage = (importedCount, skippedCount, emptyMessage) => {
   if (importedCount > 0) {
@@ -981,26 +981,20 @@ const BookmarkApp = () => {
 
       {/* UX-05: Undo toast */}
       {undoAction && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white rounded-lg px-4 py-3 flex items-center gap-3 shadow-lg">
-          <span className="text-sm">{undoAction.label}</span>
-          <button
-            onClick={async () => {
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+          <Toast
+            label={undoAction.label}
+            onAction={async () => {
               dismissUndo();
               await undoAction.restore();
             }}
-            className="text-sm text-accent font-semibold hover:underline"
-          >
-            Undo
-          </button>
-          <button onClick={dismissUndo} className="text-gray-400 hover:text-white text-xs">
-            ✕
-          </button>
+            onDismiss={dismissUndo}
+          />
         </div>
       )}
 
       <header
-        className={`fixed top-0 left-0 right-0 z-10 transition-transform duration-300 ${isHeaderVisible ? "translate-y-0" : "-translate-y-full"}`}
-        style={{ height: "112px" }}
+        className={`bookmarkit-header fixed top-0 left-0 right-0 z-10 transition-transform duration-300 ${isHeaderVisible ? "translate-y-0" : "-translate-y-full"}`}
         role="banner"
       >
         <div className="bg-primary-bg shadow-sm border-b border-border h-full">
@@ -1008,25 +1002,19 @@ const BookmarkApp = () => {
             <h1 className="sr-only">bookmarkit</h1>
             <div className="flex justify-center items-center space-x-2">
               <div className="relative w-full max-w-md">
-                <input
+                <SearchBar
                   id="search-input"
                   type="text"
                   placeholder="Type natural language queries (e.g., 'find github')"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearchInputKeyDown}
-                  disabled={isProcessing}
-                  className="w-full px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent themed-input"
+                  processing={isProcessing}
+                  size="lg"
+                  aria-label="Natural language search"
                 />
-                {isProcessing && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin rounded-full h-5 w-5 border-b-2 border-accent" />
-                )}
               </div>
-              <button
-                onClick={() => setIsHelpModalOpen(true)}
-                className="p-2 rounded-full text-secondary-text hover:text-primary-text hover:bg-secondary-bg focus:outline-none focus:ring-2 focus:ring-accent"
-                aria-label="Help"
-              >
+              <IconButton label="Help" variant="bordered" onClick={() => setIsHelpModalOpen(true)}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -1042,122 +1030,46 @@ const BookmarkApp = () => {
                   <path d="M9.09 9a3 3 0 115.82 1c-.44.86-1.26 1.3-1.91 1.63-.51.26-.75.52-.75.87v.5" />
                   <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
-              </button>
+              </IconButton>
             </div>
             <div className="flex justify-center items-center mt-2 space-x-2 flex-wrap gap-y-1">
-              <button
-                onClick={handleAddNewBookmark}
-                className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover"
-              >
+              <Button size="sm" onClick={handleAddNewBookmark}>
                 Add New
-              </button>
-              <button
-                onClick={handleImportExportOpen}
-                className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover"
-              >
+              </Button>
+              <Button size="sm" intent="secondary" onClick={handleImportExportOpen}>
                 Import/Export
-              </button>
-              <button
-                onClick={handleRemoveDuplicates}
-                className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover"
-              >
+              </Button>
+              <Button size="sm" intent="secondary" onClick={handleRemoveDuplicates}>
                 Remove Duplicates
-              </button>
+              </Button>
               {lastAction && (
-                <button
-                  onClick={resetSearch}
-                  className="px-3 py-1 bg-accent text-white text-sm rounded-md hover:bg-accent-hover"
-                >
+                <Button size="sm" intent="ghost" onClick={resetSearch}>
                   Clear Search
-                </button>
+                </Button>
               )}
-              <button
-                onClick={() => setIsOptionsOpen(true)}
-                className="px-3 py-1 bg-secondary-bg text-primary-text text-sm rounded-md border border-border hover:bg-border"
-                aria-label="Options"
-              >
+              <IconButton label="Options" variant="bordered" onClick={() => setIsOptionsOpen(true)}>
                 ⚙
-              </button>
+              </IconButton>
             </div>
             <div className="text-center text-xs text-secondary-text mt-1">
-              Click to select,{" "}
-              <kbd className="font-sans px-1 py-0.5 border border-border bg-secondary-bg rounded">
-                Shift
-              </kbd>
-              +click to open, double-click or{" "}
-              <kbd className="font-sans px-1 py-0.5 border border-border bg-secondary-bg rounded">
-                E
-              </kbd>{" "}
-              to edit.
+              Click to select, <Kbd>Shift</Kbd>
+              +click to open, double-click or <Kbd>E</Kbd> to edit.
             </div>
           </div>
         </div>
       </header>
 
       <main
-        className={`flex-1 overflow-hidden flex flex-col transition-all duration-300 ${isHeaderVisible ? "pt-28" : "pt-4"}`}
+        className={`bookmarkit-main flex-1 overflow-hidden flex flex-col transition-all duration-300 ${isHeaderVisible ? "bookmarkit-main--header-visible" : "bookmarkit-main--header-hidden"}`}
         role="main"
       >
         <div className="flex-1 min-h-0 max-w-4xl w-full mx-auto px-4 flex flex-col">
-          {/* #53: deterministic filter controls — work with no LLM configured */}
-          <FilterBar
-            filters={manualFilters}
-            tagFacets={tagFacets}
-            onChange={setManualFilters}
-            onCycleTag={handleCycleTag}
-            onClear={clearManualFilters}
-          />
-
           {/* Agent plan display */}
           {lastAction && (
-            <div
-              className={`mb-4 p-3 rounded-lg ${lastAction.action === "error" ? "bg-red-50 border border-red-200" : "bg-green-50 border border-green-200"}`}
-              role="status"
-            >
-              {Array.isArray(lastAction) ? (
-                <>
-                  <p className="text-sm text-green-800 font-bold">Agent Plan:</p>
-                  <ol className="list-decimal list-inside mt-1 space-y-1">
-                    {lastAction.map((step, idx) => (
-                      <li key={idx} className="text-sm text-green-800">
-                        <strong>{step.action}</strong>
-                        {step.parameters && Object.keys(step.parameters).length > 0 && (
-                          <span className="ml-2 font-mono text-xs text-green-600">
-                            (
-                            {Object.entries(step.parameters)
-                              .map(([k, v]) => `${k}: "${v}"`)
-                              .join(", ")}
-                            )
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              ) : (
-                <p
-                  className={`text-sm ${lastAction.action === "error" ? "text-red-800" : "text-green-800"}`}
-                >
-                  <strong>Agent Action:</strong> {lastAction.action}
-                </p>
-              )}
+            <div className="mb-4">
+              <AgentPlan steps={lastAction} error={lastAction.action === "error"} />
             </div>
           )}
-
-          <div className="text-right text-sm text-secondary-text mb-4">
-            {(() => {
-              // Say "12 of 340" whenever the view is narrowed, so a filtered count is
-              // never mistaken for the size of the whole collection.
-              const shown =
-                displayedBookmarks.length === bookmarks.length
-                  ? `${bookmarks.length} bookmarks`
-                  : `${displayedBookmarks.length} of ${bookmarks.length} bookmarks`;
-              if (multiSelectedBookmarkIds.length > 0)
-                return `${multiSelectedBookmarkIds.length} selected | ${shown}`;
-              if (selectedBookmarkId) return `1 selected | ${shown}`;
-              return shown;
-            })()}
-          </div>
 
           {/* ARCH-10: Empty state + PERF-06: virtualized list — flex-1 fills remaining viewport height */}
           <div className="flex-1 min-h-0 pb-4">
@@ -1177,6 +1089,21 @@ const BookmarkApp = () => {
               onClearSearch={clearAllFilters}
               onAddNew={handleAddNewBookmark}
               onImport={handleImportExportOpen}
+              filters={manualFilters}
+              tagFacets={tagFacets}
+              onFilterChange={setManualFilters}
+              onCycleTag={handleCycleTag}
+              onClearFilters={clearManualFilters}
+              filterSummary={(() => {
+                const shown =
+                  displayedBookmarks.length === bookmarks.length
+                    ? `${bookmarks.length} total bookmarks`
+                    : `${displayedBookmarks.length} of ${bookmarks.length} bookmarks`;
+                if (multiSelectedBookmarkIds.length > 0)
+                  return `${multiSelectedBookmarkIds.length} selected | ${shown}`;
+                if (selectedBookmarkId) return `1 selected | ${shown}`;
+                return shown;
+              })()}
             />
           </div>
         </div>
@@ -1234,35 +1161,23 @@ const BookmarkApp = () => {
           />
         )}
         {isImportExportModalOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            onClick={(e) => e.target === e.currentTarget && handleImportExportClose()}
-          >
-            <div className="bg-primary-bg rounded-lg shadow-xl max-w-lg w-full m-4 max-h-[90vh] overflow-y-auto">
-              <ImportExportContent
-                bookmarks={bookmarks}
-                onClose={handleImportExportClose}
-                onImportJson={handleImportJson}
-                onImportHtml={handleImportHtml}
-                showMessage={showCustomMessage}
-              />
-            </div>
-          </div>
+          <Modal title="Import / Export Bookmarks" onClose={handleImportExportClose} size="lg">
+            <ImportExportContent
+              bookmarks={bookmarks}
+              onClose={handleImportExportClose}
+              onImportJson={handleImportJson}
+              onImportHtml={handleImportHtml}
+              showMessage={showCustomMessage}
+            />
+          </Modal>
         )}
         {isDeleteConfirmModalOpen && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            onClick={(e) => e.target === e.currentTarget && !isDeleting && handleCancelDelete()}
-          >
-            <div className="bg-primary-bg rounded-lg shadow-xl max-w-md w-full m-4">
-              <DeleteConfirmModal
-                message={`Are you sure you want to delete ${bookmarksToDelete.length} bookmark(s)?`}
-                onConfirm={handleConfirmDelete}
-                onCancel={handleCancelDelete}
-                isLoading={isDeleting}
-              />
-            </div>
-          </div>
+          <DeleteConfirmModal
+            message={`Are you sure you want to delete ${bookmarksToDelete.length} bookmark(s)?`}
+            onConfirm={handleConfirmDelete}
+            onCancel={handleCancelDelete}
+            isLoading={isDeleting}
+          />
         )}
       </ErrorBoundary>
     </div>

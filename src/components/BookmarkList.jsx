@@ -2,11 +2,14 @@
 // Only renders visible rows, allowing 1000+ bookmarks without DOM bloat.
 // ARCH-10: Renders contextual empty states depending on loading/search/results state.
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { FixedSizeList } from "react-window";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { VariableSizeList } from "react-window";
 import BookmarkCard from "./BookmarkCard.jsx";
+import FilterBar from "./FilterBar.jsx";
+import { Button, EmptyState as DesignEmptyState } from "./DesignSystem.jsx";
 
-const ITEM_HEIGHT = 104; // px — approximate card height
+const ITEM_HEIGHT = 104; // px — initial card-row estimate before measurement
+const FILTER_ROW_GAP = 16; // px — mirrors the filter panel's mb-4 spacing
 
 // ARCH-10: Three distinct empty states
 function EmptyState({
@@ -23,91 +26,88 @@ function EmptyState({
 
   if (bookmarksTotal === 0) {
     return (
-      <div className="text-center py-16 px-4">
-        <svg
-          className="mx-auto mb-4 text-secondary-text"
-          width="48"
-          height="48"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
-        </svg>
-        <p className="text-secondary-text font-medium mb-2">No bookmarks yet.</p>
-        <p className="text-secondary-text text-sm mb-4">
-          Click &quot;Add New&quot; to get started or import from a browser export.
-        </p>
-        <div className="flex justify-center gap-3">
-          <button
-            onClick={onAddNew}
-            className="px-4 py-2 bg-accent text-white text-sm rounded-md hover:bg-accent-hover"
+      <DesignEmptyState
+        icon={
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            Add New
-          </button>
-          <button
-            onClick={onImport}
-            className="px-4 py-2 bg-secondary-bg text-primary-text text-sm rounded-md border border-border hover:bg-border"
-          >
-            Import
-          </button>
-        </div>
-      </div>
+            <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+          </svg>
+        }
+        title="No bookmarks yet."
+        description={'Click "Add New" to get started or import from a browser export.'}
+        actions={
+          <>
+            <Button onClick={onAddNew}>Add New</Button>
+            <Button intent="secondary" onClick={onImport}>
+              Import
+            </Button>
+          </>
+        }
+      />
     );
   }
 
   if (lastAction) {
     return (
-      <div className="text-center py-12 px-4">
-        <svg
-          className="mx-auto mb-4 text-secondary-text"
-          width="40"
-          height="40"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <p className="text-secondary-text mb-2">No bookmarks match your request.</p>
-        <button onClick={onClear} className="mt-1 text-accent hover:underline text-sm">
-          Clear search
-        </button>
-      </div>
+      <DesignEmptyState
+        icon={
+          <svg
+            width="40"
+            height="40"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        }
+        title="No bookmarks match your request."
+        actions={
+          <Button intent="ghost" onClick={onClear}>
+            Clear search
+          </Button>
+        }
+      />
     );
   }
 
   if (searchActive) {
     return (
-      <div className="text-center py-12 px-4">
-        <svg
-          className="mx-auto mb-4 text-secondary-text"
-          width="40"
-          height="40"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <p className="text-secondary-text mb-2">
-          No bookmarks match{searchQuery ? ` "${searchQuery}"` : " your search"}.
-        </p>
-        <button onClick={onClear} className="mt-1 text-accent hover:underline text-sm">
-          Clear search
-        </button>
-      </div>
+      <DesignEmptyState
+        icon={
+          <svg
+            width="40"
+            height="40"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        }
+        title={`No bookmarks match${searchQuery ? ` "${searchQuery}"` : " your search"}.`}
+        actions={
+          <Button intent="ghost" onClick={onClear}>
+            Clear search
+          </Button>
+        }
+      />
     );
   }
 
@@ -119,7 +119,39 @@ function EmptyState({
 // if the function reference changes between clicks React unmounts/remounts the row
 // DOM nodes, which causes the browser to lose double-click tracking. By keeping
 // renderRow stable and passing all changing state through itemData we avoid this.
-function renderRow({ index, style, data }) {
+function FilterRow({ style, data }) {
+  const measureRef = useRef(null);
+  const { onFilterHeightChange } = data;
+
+  useEffect(() => {
+    const element = measureRef.current;
+    if (!element) return;
+    const updateHeight = () => onFilterHeightChange(Math.ceil(element.scrollHeight));
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [onFilterHeightChange]);
+
+  return (
+    <div style={style} role="presentation">
+      <div ref={measureRef} style={{ paddingBottom: FILTER_ROW_GAP }}>
+        <FilterBar
+          filters={data.filters}
+          tagFacets={data.tagFacets}
+          onChange={data.onFilterChange}
+          onCycleTag={data.onCycleTag}
+          onClear={data.onClearFilters}
+          summary={data.filterSummary}
+          style={{ marginBottom: 0 }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function BookmarkRow({ index, style, data }) {
+  const measureRef = useRef(null);
   const {
     bookmarks,
     selectedBookmarkId,
@@ -128,21 +160,48 @@ function renderRow({ index, style, data }) {
     onBookmarkClick,
     onBookmarkDoubleClick,
     onBookmarkKeyDown,
+    onRowHeightChange,
   } = data;
-  const bookmark = bookmarks[index];
+  const bookmark = bookmarks[index - 1];
+
+  useEffect(() => {
+    const element = measureRef.current;
+    if (!element) return;
+    const updateHeight = () =>
+      onRowHeightChange(index, bookmark.id, Math.ceil(element.scrollHeight));
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [bookmark.id, index, onRowHeightChange]);
+
   return (
-    <div style={{ ...style, paddingBottom: 8 }}>
-      <BookmarkCard
-        bookmark={bookmark}
-        isSelected={selectedBookmarkId === bookmark.id}
-        isMultiSelected={multiSelectedBookmarkIds.includes(bookmark.id)}
-        isPendingDelete={bookmarksToDelete.includes(bookmark.id)}
-        onClick={(e) => onBookmarkClick(bookmark, e)}
-        onDoubleClick={() => onBookmarkDoubleClick(bookmark)}
-        onKeyDown={(e) => onBookmarkKeyDown(e, bookmark)}
-      />
+    <div style={style}>
+      <div ref={measureRef} style={{ paddingBottom: 8 }}>
+        <BookmarkCard
+          bookmark={bookmark}
+          isSelected={selectedBookmarkId === bookmark.id}
+          isMultiSelected={multiSelectedBookmarkIds.includes(bookmark.id)}
+          isPendingDelete={bookmarksToDelete.includes(bookmark.id)}
+          onClick={(e) => onBookmarkClick(bookmark, e)}
+          onDoubleClick={() => onBookmarkDoubleClick(bookmark)}
+          onKeyDown={(e) => onBookmarkKeyDown(e, bookmark)}
+        />
+      </div>
     </div>
   );
+}
+
+function renderRow({ index, style, data }) {
+  return index === 0 ? (
+    <FilterRow style={style} data={data} />
+  ) : (
+    <BookmarkRow index={index} style={style} data={data} />
+  );
+}
+
+function itemKey(index, data) {
+  return index === 0 ? "bookmark-filters" : data.bookmarks[index - 1].id;
 }
 
 const BookmarkList = React.memo(function BookmarkList({
@@ -162,10 +221,18 @@ const BookmarkList = React.memo(function BookmarkList({
   onClearSearch,
   onAddNew,
   onImport,
+  filters,
+  tagFacets,
+  onFilterChange,
+  onCycleTag,
+  onClearFilters,
+  filterSummary,
 }) {
   const listRef = useRef(null);
   const containerRef = useRef(null);
+  const rowHeightsRef = useRef(new Map());
   const [listHeight, setListHeight] = useState(500);
+  const [filterHeight, setFilterHeight] = useState(136);
 
   // Measure container height so FixedSizeList fills the available space.
   useEffect(() => {
@@ -179,6 +246,20 @@ const BookmarkList = React.memo(function BookmarkList({
     return () => ro.disconnect();
   }, []);
 
+  useEffect(() => {
+    listRef.current?.resetAfterIndex(0);
+  }, [filterHeight]);
+
+  const handleFilterHeightChange = useCallback((height) => {
+    setFilterHeight((current) => (current === height ? current : height));
+  }, []);
+
+  const handleRowHeightChange = useCallback((index, bookmarkId, height) => {
+    if (rowHeightsRef.current.get(bookmarkId) === height) return;
+    rowHeightsRef.current.set(bookmarkId, height);
+    listRef.current?.resetAfterIndex(index);
+  }, []);
+
   // Pack all row-level state into itemData so renderRow (stable ref) can read it.
   const itemData = useMemo(
     () => ({
@@ -189,6 +270,14 @@ const BookmarkList = React.memo(function BookmarkList({
       onBookmarkClick,
       onBookmarkDoubleClick,
       onBookmarkKeyDown,
+      filters,
+      tagFacets,
+      onFilterChange,
+      onCycleTag,
+      onClearFilters,
+      filterSummary,
+      onFilterHeightChange: handleFilterHeightChange,
+      onRowHeightChange: handleRowHeightChange,
     }),
     [
       bookmarks,
@@ -198,38 +287,61 @@ const BookmarkList = React.memo(function BookmarkList({
       onBookmarkClick,
       onBookmarkDoubleClick,
       onBookmarkKeyDown,
+      filters,
+      tagFacets,
+      onFilterChange,
+      onCycleTag,
+      onClearFilters,
+      filterSummary,
+      handleFilterHeightChange,
+      handleRowHeightChange,
     ]
   );
 
   if (bookmarks.length === 0) {
     return (
-      <EmptyState
-        isLoading={isLoading}
-        bookmarksTotal={bookmarksTotal}
-        searchActive={searchActive}
-        lastAction={lastAction}
-        searchQuery={searchQuery}
-        onClear={onClearSearch}
-        onAddNew={onAddNew}
-        onImport={onImport}
-      />
+      <div className="h-full overflow-y-auto">
+        <FilterBar
+          filters={filters}
+          tagFacets={tagFacets}
+          onChange={onFilterChange}
+          onCycleTag={onCycleTag}
+          onClear={onClearFilters}
+          summary={filterSummary}
+        />
+        <EmptyState
+          isLoading={isLoading}
+          bookmarksTotal={bookmarksTotal}
+          searchActive={searchActive}
+          lastAction={lastAction}
+          searchQuery={searchQuery}
+          onClear={onClearSearch}
+          onAddNew={onAddNew}
+          onImport={onImport}
+        />
+      </div>
     );
   }
 
   return (
     <div ref={containerRef} role="list" aria-label="Bookmarks" style={{ height: "100%" }}>
-      <FixedSizeList
+      <VariableSizeList
         ref={listRef}
         height={listHeight}
-        itemCount={bookmarks.length}
-        itemSize={ITEM_HEIGHT}
+        itemCount={bookmarks.length + 1}
+        itemSize={(index) =>
+          index === 0
+            ? filterHeight
+            : rowHeightsRef.current.get(bookmarks[index - 1].id) || ITEM_HEIGHT
+        }
         itemData={itemData}
+        itemKey={itemKey}
         width="100%"
         overscanCount={5}
         style={{ overflowX: "hidden" }}
       >
         {renderRow}
-      </FixedSizeList>
+      </VariableSizeList>
     </div>
   );
 });

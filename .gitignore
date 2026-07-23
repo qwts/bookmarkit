@@ -26,3 +26,4 @@ release
 *.sw?
 
 coverage
+storybook-static

@@ -4,6 +4,7 @@
 
 import React, { useMemo, useState } from "react";
 import { TAG_STATE, getTagState, hasActiveFilters } from "../utils/manualFilters.js";
+import { Button, Input, Select } from "./DesignSystem.jsx";
 
 const SORT_FIELDS = [
   { value: "", label: "Default order" },
@@ -16,9 +17,6 @@ const SORT_FIELDS = [
 ];
 
 const VISIBLE_TAG_LIMIT = 12;
-
-const controlClass =
-  "px-2 py-1 text-sm rounded-md border border-border themed-input focus:outline-none focus:ring-2 focus:ring-accent";
 
 function TagChip({ tag, count, state, onClick }) {
   const base =
@@ -56,6 +54,8 @@ const FilterBar = React.memo(function FilterBar({
   onChange,
   onCycleTag,
   onClear,
+  summary,
+  style,
 }) {
   const [showAllTags, setShowAllTags] = useState(false);
 
@@ -69,22 +69,20 @@ const FilterBar = React.memo(function FilterBar({
 
   return (
     <div
-      className="mb-3 p-2 rounded-lg border border-border bg-primary-bg"
+      className="mb-4 p-3 rounded-lg border border-border bg-primary-bg"
+      style={style}
       role="search"
       aria-label="Filter bookmarks"
     >
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[10rem]">
-          <label htmlFor="filter-text" className="sr-only">
-            Filter bookmarks by text
-          </label>
-          <input
+        <div className="relative flex-1 min-w-[13.75rem]">
+          <Input
             id="filter-text"
             type="text"
             value={filters.text}
             onChange={(e) => onChange({ ...filters, text: e.target.value })}
             placeholder="Filter instantly (no AI)…"
-            className={`${controlClass} w-full`}
+            aria-label="Filter bookmarks by text"
           />
           {filters.text && (
             <button
@@ -98,62 +96,46 @@ const FilterBar = React.memo(function FilterBar({
           )}
         </div>
 
-        <label htmlFor="filter-rating" className="sr-only">
-          Minimum rating
-        </label>
-        <select
+        <Select
           id="filter-rating"
           value={filters.minRating}
           onChange={(e) => onChange({ ...filters, minRating: Number(e.target.value) })}
-          className={controlClass}
-        >
-          <option value={0}>Any rating</option>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <option key={n} value={n}>
-              {"★".repeat(n)}+
-            </option>
-          ))}
-        </select>
+          aria-label="Minimum rating"
+          wrapperClassName="w-[9.375rem]"
+          options={[
+            { value: 0, label: "Any rating" },
+            ...[1, 2, 3, 4, 5].map((n) => ({ value: n, label: `${"★".repeat(n)}+` })),
+          ]}
+        />
 
-        <label htmlFor="filter-sort" className="sr-only">
-          Sort by
-        </label>
-        <select
+        <Select
           id="filter-sort"
           value={filters.sortBy}
           onChange={(e) => onChange({ ...filters, sortBy: e.target.value })}
-          className={controlClass}
-        >
-          {SORT_FIELDS.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </select>
+          aria-label="Sort by"
+          wrapperClassName="w-[10.625rem]"
+          options={SORT_FIELDS}
+        />
 
-        <button
+        <Button
           type="button"
+          intent="secondary"
           onClick={() => onChange({ ...filters, order: filters.order === "asc" ? "desc" : "asc" })}
           disabled={!filters.sortBy}
-          className={`${controlClass} disabled:opacity-40 disabled:cursor-not-allowed`}
           aria-label={`Sort direction: ${filters.order === "asc" ? "ascending" : "descending"}. Activate to reverse.`}
         >
           {filters.order === "asc" ? "↑ Asc" : "↓ Desc"}
-        </button>
+        </Button>
 
         {active && (
-          <button
-            type="button"
-            onClick={onClear}
-            className="px-2 py-1 text-sm rounded-md border border-border text-secondary-text hover:text-primary-text hover:bg-secondary-bg focus:outline-none focus:ring-2 focus:ring-accent"
-          >
+          <Button type="button" intent="ghost" onClick={onClear}>
             Clear filters
-          </button>
+          </Button>
         )}
       </div>
 
       {tagFacets.length > 0 && (
-        <div className="flex items-center gap-1 flex-wrap mt-2">
+        <div className="flex items-center gap-2 flex-wrap mt-3">
           {visibleTags.map(({ tag, count }) => (
             <TagChip
               key={tag}
@@ -181,6 +163,12 @@ const FilterBar = React.memo(function FilterBar({
               Show fewer
             </button>
           )}
+        </div>
+      )}
+
+      {summary && (
+        <div className="mt-3 pt-3 border-t border-border text-sm text-secondary-text">
+          {summary}
         </div>
       )}
     </div>
