@@ -1,5 +1,11 @@
 # bookmarkit
 
+## 0.1.1
+
+### Patch Changes
+
+- 24b2adb: Restyle the web app and Chrome popup with the Bookmarkit Design System.
+
 ## 0.1.0
 
 ### Minor Changes
