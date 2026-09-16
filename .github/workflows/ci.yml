@@ -46,7 +46,7 @@ jobs:
       run_post_merge: ${{ steps.policy.outputs.run_post_merge }}
     steps:
       - id: policy
-        uses: qwts/playbook-engineering/.github/actions/ci-policy@5455a3f5939369ea843b1bbb4d2573739f4381a6 # ci-policy 2026-08-20
+        uses: qwts/qwts-agent-ci/.github/actions/ci-policy@3a5617b287d922e37f262210a1d8750d8217b56d # qwts-agent-ci 2026-09-15
 
   merge-evidence:
     name: Verify merged commit evidence
@@ -119,7 +119,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        uses: qwts/playbook-engineering/.github/actions/bounded-command@5455a3f5939369ea843b1bbb4d2573739f4381a6 # bounded-command 2026-08-20
+        uses: qwts/qwts-agent-ci/.github/actions/bounded-command@3a5617b287d922e37f262210a1d8750d8217b56d # qwts-agent-ci 2026-09-15
         with:
           task: Install complete-suite dependencies
           executable: npm
@@ -193,8 +193,8 @@ jobs:
       - name: Checkout pinned runtime checker
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: qwts/playbook-engineering
-          ref: 5455a3f5939369ea843b1bbb4d2573739f4381a6
+          repository: qwts/qwts-agent-ci
+          ref: 3a5617b287d922e37f262210a1d8750d8217b56d
           path: .ci-runtime-policy
           sparse-checkout: tools/ci-runtime
           persist-credentials: false
@@ -219,7 +219,7 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Install dependencies
-        uses: qwts/playbook-engineering/.github/actions/bounded-command@5455a3f5939369ea843b1bbb4d2573739f4381a6 # bounded-command 2026-08-20
+        uses: qwts/qwts-agent-ci/.github/actions/bounded-command@3a5617b287d922e37f262210a1d8750d8217b56d # qwts-agent-ci 2026-09-15
         with:
           task: Install smoke dependencies
           executable: npm
